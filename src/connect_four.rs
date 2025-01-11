@@ -1,128 +1,154 @@
-use std::cmp::{max,min};
+use rayon::prelude::*;
+use std::cmp::{max, min};
 
 pub struct ConnectFour {
-    pub board: [[i8; 6]; 7],
-    pub player: i8,
+    pub board: [[Token; 6]; 7],
+    pub column_height: [i8; 7],
+    pub player: Player,
 }
-impl ConnectFour {
-    pub fn play(&mut self, column: i8) -> bool {
-        self.swap_players();
-
-        let row = self.find_token_row(column);
-        self.board[column as usize][row as usize] = self.player;
-
-        self.player_won()
-    }
-    fn swap_players(&mut self) {
-        if self.player == 1 {
-            self.player = 2;
-        } else {
-            self.player = 1;
-        }
-    }
-    pub fn find_token_row(&self, column: i8) -> i8 {
-        for row in (0..6).rev() {
-            if self.board[column as usize][row] == 0 {
-                return row as i8;
-            }
-        }
-        -1
-    }
-    fn player_won(&self) -> bool {
-        for x in 0..self.board.len() - 4 {
-            for y in (self.board.len() - 1)..0 {
-                let position = Point::new(x as i8, y as i8);
-                let checks = [
-                    // self.check_for_win(&position,&Delta::Decrement), 
-                    self.check_for_win(&position,&Point { x:Delta::Increment,y:Delta::Increment} ),
-                    // self.check_for_win(&position,Point::new(1, 0)),
-                    // self.check_for_win(&position,Point::new(1, 0)),
-                ];
-
-                if let Some(true) = checks.iter().find(|&&x| x) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-    fn check_for_win(&self, position:&Point<i8>, delta_y:&Point<Delta>) -> bool {
-
-        let mut x = get_starting_x(&position.x);
-        let mut y = get_starting_y(&position.y, &delta_y);
-        let y_inc:i8 = match delta_y {
-            Delta::Increment => 1,
-            Delta::Zero => 0,
-            Delta::Decrement => -1
-        };
-        let mut series_len: u8 = 0;
-
-        for iteration in 0..7 {
-            if series_len == 4 {
-                return true;
-            }
-            if x == self.board.len() as i8 || y == self.board[0].len() as i8 {
-                return false;
-            }
-
-            if self.board[x.into()][y.into()] == self.player {
-                series_len += 1;
-            } else {
-                series_len = 0; // Clear
-            }
-
-            x += 1;
-            y += match delta_y {
-                Delta::Increment => 1,
-                Delta::Zero => 0,
-                Delta::Decrement => -1
-            }
-        }
-
-        return false;
-
-        fn get_starting_x(x_pos:&i8) -> i8 {
-            max(x_pos - 4,0)
-        }
-        fn get_starting_y(y_pos:&i8,delta_y:&Delta)-> i8{
-            match delta_y {
-                Delta::Increment => max(y_pos - 4,0),
-                Delta::Zero => y_pos.clone(),
-                Delta::Decrement => min(y_pos + 4 , 6)
-            }
-        }
-        fn get_number_of_col_checks(modified_col: u8) -> u8 {
-            //! I think starting_pos should instead be modified col
-            let checks = -1 * (modified_col as i8 - 4).abs() + 7;
-            return checks as u8;
-        }
-        fn get_number_of_row_checks(modified_col: u8) -> u8 {
-            let checks = -1f32 * ((modified_col as f32) - 2.5).abs() + 6.5;
-            checks.floor() as u8
-        }
-    }
-}
-
 impl ConnectFour {
     pub fn new() -> ConnectFour {
         ConnectFour {
-            board: [[0; 6]; 7],
-            player: 0,
+            board: [[Token::Empty; 6]; 7],
+            column_height: [0; 7],
+            player: Player::Blue,
         }
     }
-}
-struct Point<T> {
-    x:T,
-    y:T,
-}
-impl<T> Point<T> {
-    pub fn new(x:T,y:T) -> Point<T>{
-        Point {x,y,}
+
+    pub fn play(&mut self, selected_x: i8) -> bool {
+        /*Remember to swap players after calling */
+
+        let new_token = Point {
+            x: selected_x,
+            y: self.column_height[selected_x as usize],
+        };
+
+        self.board[new_token.x as usize][new_token.y as usize] = Token::Base(self.player);
+        self.column_height[new_token.x as usize] += 1;
+        self.player_won(new_token)
+    }
+    pub fn swap_players(&mut self) {
+        self.player = match self.player {
+            Player::Blue => Player::Red,
+            Player::Red => Player::Blue,
+        };
+    }
+
+    fn player_won(&self, new_token: Point<i8>) -> bool {
+        let directions = [
+            // CheckDirection::North,
+            // CheckDirection::East, 
+            // CheckDirection::NorthEast,
+            CheckDirection::SouthEast,
+        ];
+        directions
+            .par_iter()
+            .any(|delta| self.check_for_win(&new_token, delta))
+    }
+
+    fn check_for_win(&self, new_token_pos: &Point<i8>, check_direction: &CheckDirection) -> bool {
+        fn get_starting_x(x_pos: &i8, check_direction: &CheckDirection) -> i8 {
+            match check_direction {
+                CheckDirection::North => x_pos.to_owned(),
+                CheckDirection::East => max(x_pos - 3, 0), // !
+                CheckDirection::NorthEast => max(x_pos - 3, 0), // !
+                CheckDirection::SouthEast => max(x_pos - 3, 0),
+            }
+        }
+        fn get_starting_y(y_pos: &i8, check_direction: &CheckDirection) -> i8 {
+            match check_direction {
+                CheckDirection::North => max(y_pos - 3, 0),
+                CheckDirection::East => y_pos.to_owned(),
+                CheckDirection::NorthEast => max(y_pos - 3, 0),
+                CheckDirection::SouthEast => min(y_pos + 3, 5),
+            }
+        }
+
+        fn convert_direction_to_demension_increments(
+            check_direction: &CheckDirection,
+        ) -> Point<i8> {
+            match check_direction {
+                CheckDirection::North => Point { x: 0, y: 1 },
+                CheckDirection::East => Point { x: 1, y: 0 },
+                CheckDirection::NorthEast => Point { x: 1, y: 1 },
+                CheckDirection::SouthEast => Point { x: 1, y: -1 },
+            }
+        }
+        fn calculate_max_checks(new_token_pos: &Point<i8>, check_direction: &CheckDirection) -> i8 {
+            fn number_of_x_checks(x: &i8) -> i8 {
+                -(x - 3).abs() + 7
+            }
+            fn number_of_y_checks(y: &i8) -> i8 {
+                let checks = -((*y as f32) - 2.5).abs() + 5.5;
+                checks as i8
+            }
+            match check_direction {
+                CheckDirection::North => number_of_y_checks(&new_token_pos.y),
+                CheckDirection::East => number_of_x_checks(&new_token_pos.x),
+                CheckDirection::NorthEast => min(
+                    number_of_x_checks(&new_token_pos.x),
+                    number_of_y_checks(&new_token_pos.y),
+                ),
+                CheckDirection::SouthEast => min(
+                    number_of_x_checks(&new_token_pos.x),
+                    number_of_y_checks(&new_token_pos.y),
+                ),
+            }
+        }
+        let mut point: Point<i8> = Point {
+            x: get_starting_x(&new_token_pos.x, check_direction),
+            y: get_starting_y(&new_token_pos.y, check_direction),
+        };
+
+        let increments = convert_direction_to_demension_increments(check_direction);
+
+        let max_checks = calculate_max_checks(new_token_pos, check_direction);
+
+        
+        println!("new_token {:?}", new_token_pos);
+        println!("max_checks: {max_checks}");
+        println!("Start {:?}", point);
+        let mut series_len: i8 = 0;
+        for _ in 0..max_checks {
+            if let Token::Base(player) = self.board[point.x as usize][point.y as usize] {
+                if self.player == player {
+                    series_len += 1;
+                    if series_len == 4 {
+                        return true;
+                    }
+                } else {
+                    series_len = 0; // Clear
+                }
+            }
+            point.x += increments.x;
+            point.y += increments.y;
+        }
+        println!("End {:?}", point);
+        false
     }
 }
 
-enum Delta{
-    Increment,
-    Zero,
-    Decrement,
+#[derive(Debug)]
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+enum CheckDirection {
+    North,
+    East,
+    NorthEast,
+    SouthEast,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum Player {
+    Blue,
+    Red,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Token {
+    Base(Player),
+    Empty,
 }
