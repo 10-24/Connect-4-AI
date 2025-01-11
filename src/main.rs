@@ -26,7 +26,7 @@ fn get_column(game: &connect_four::ConnectFour) -> i8 {
     let mut selected_col: i8 = 3;
 
     loop {
-        // clear_terminal();
+        clear_terminal();
         print_player(game.player);
         print_board(game, selected_col);
         

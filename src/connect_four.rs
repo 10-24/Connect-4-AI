@@ -1,17 +1,17 @@
 use rayon::prelude::*;
-use std::cmp::{max, min};
+use std::ops::Neg;
 
 pub struct ConnectFour {
     pub board: [[Token; 6]; 7],
     pub column_height: [i8; 7],
-    pub player: Player,
+    pub current_player: Player,
 }
 impl ConnectFour {
     pub fn new() -> ConnectFour {
         ConnectFour {
             board: [[Token::Empty; 6]; 7],
             column_height: [0; 7],
-            player: Player::Blue,
+            current_player: Player::Blue,
         }
     }
 
@@ -23,12 +23,12 @@ impl ConnectFour {
             y: self.column_height[selected_x as usize],
         };
 
-        self.board[new_token.x as usize][new_token.y as usize] = Token::Base(self.player);
+        self.board[new_token.x as usize][new_token.y as usize] = Token::Base(self.current_player);
         self.column_height[new_token.x as usize] += 1;
         self.player_won(new_token)
     }
     pub fn swap_players(&mut self) {
-        self.player = match self.player {
+        self.current_player = match self.current_player {
             Player::Blue => Player::Red,
             Player::Red => Player::Blue,
         };
@@ -36,9 +36,9 @@ impl ConnectFour {
 
     fn player_won(&self, new_token: Point<i8>) -> bool {
         let directions = [
-            // CheckDirection::North,
-            // CheckDirection::East, 
-            // CheckDirection::NorthEast,
+            CheckDirection::North,
+            CheckDirection::East,
+            CheckDirection::NorthEast,
             CheckDirection::SouthEast,
         ];
         directions
@@ -47,23 +47,6 @@ impl ConnectFour {
     }
 
     fn check_for_win(&self, new_token_pos: &Point<i8>, check_direction: &CheckDirection) -> bool {
-        fn get_starting_x(x_pos: &i8, check_direction: &CheckDirection) -> i8 {
-            match check_direction {
-                CheckDirection::North => x_pos.to_owned(),
-                CheckDirection::East => max(x_pos - 3, 0), // !
-                CheckDirection::NorthEast => max(x_pos - 3, 0), // !
-                CheckDirection::SouthEast => max(x_pos - 3, 0),
-            }
-        }
-        fn get_starting_y(y_pos: &i8, check_direction: &CheckDirection) -> i8 {
-            match check_direction {
-                CheckDirection::North => max(y_pos - 3, 0),
-                CheckDirection::East => y_pos.to_owned(),
-                CheckDirection::NorthEast => max(y_pos - 3, 0),
-                CheckDirection::SouthEast => min(y_pos + 3, 5),
-            }
-        }
-
         fn convert_direction_to_demension_increments(
             check_direction: &CheckDirection,
         ) -> Point<i8> {
@@ -74,66 +57,63 @@ impl ConnectFour {
                 CheckDirection::SouthEast => Point { x: 1, y: -1 },
             }
         }
-        fn calculate_max_checks(new_token_pos: &Point<i8>, check_direction: &CheckDirection) -> i8 {
-            fn number_of_x_checks(x: &i8) -> i8 {
-                -(x - 3).abs() + 7
-            }
-            fn number_of_y_checks(y: &i8) -> i8 {
-                let checks = -((*y as f32) - 2.5).abs() + 5.5;
-                checks as i8
-            }
-            match check_direction {
-                CheckDirection::North => number_of_y_checks(&new_token_pos.y),
-                CheckDirection::East => number_of_x_checks(&new_token_pos.x),
-                CheckDirection::NorthEast => min(
-                    number_of_x_checks(&new_token_pos.x),
-                    number_of_y_checks(&new_token_pos.y),
-                ),
-                CheckDirection::SouthEast => min(
-                    number_of_x_checks(&new_token_pos.x),
-                    number_of_y_checks(&new_token_pos.y),
-                ),
-            }
-        }
-        let mut point: Point<i8> = Point {
-            x: get_starting_x(&new_token_pos.x, check_direction),
-            y: get_starting_y(&new_token_pos.y, check_direction),
-        };
 
-        let increments = convert_direction_to_demension_increments(check_direction);
+        let mut increments = convert_direction_to_demension_increments(check_direction);
 
-        let max_checks = calculate_max_checks(new_token_pos, check_direction);
-
+        let mut series_len:u8 = 1; // 1 to account for the new token 
+        series_len += self.march_in_direction(new_token_pos,&increments);
+        increments.negate();
+        series_len += self.march_in_direction(new_token_pos,&increments);
         
-        println!("new_token {:?}", new_token_pos);
-        println!("max_checks: {max_checks}");
-        println!("Start {:?}", point);
-        let mut series_len: i8 = 0;
-        for _ in 0..max_checks {
-            if let Token::Base(player) = self.board[point.x as usize][point.y as usize] {
-                if self.player == player {
-                    series_len += 1;
-                    if series_len == 4 {
-                        return true;
-                    }
-                } else {
-                    series_len = 0; // Clear
-                }
+        series_len >= 4
+    }
+    fn march_in_direction(&self, new_token_pos: &Point<i8>, increments: &Point<i8>) -> u8 {
+        
+     
+        let mut pos = new_token_pos.clone();
+        let mut series_len = 0 ;
+
+        loop {
+            pos.x += increments.x;
+            pos.y += increments.y;
+
+            // Checking for underflow
+            if pos.x < 0 || pos.y < 0 {
+                return series_len;
             }
-            point.x += increments.x;
-            point.y += increments.y;
+            // Checking for overflow
+            if pos.x as usize >= self.board.len() || pos.y as usize >= self.board[0].len() {
+                return series_len;
+            }
+
+            if let Token::Base(token_owner) = self.board[pos.x as usize][pos.y as usize] {
+                if token_owner != self.current_player {
+                    return series_len;
+                }
+                series_len += 1;
+            }
         }
-        println!("End {:?}", point);
-        false
     }
 }
 
-#[derive(Debug)]
-struct Point<T> {
+#[derive(Debug, Clone)]
+struct Point<T>
+where
+    T: Neg<Output = T> + Copy, // Constraint for signed types
+{
     x: T,
     y: T,
 }
 
+impl<T> Point<T>
+where
+    T: Neg<Output = T> + Copy,
+{
+    fn negate(&mut self) {
+        self.x = -self.x;
+        self.y = -self.y;
+    }
+}
 enum CheckDirection {
     North,
     East,
