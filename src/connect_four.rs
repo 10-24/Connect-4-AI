@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use std::ops::Neg;
+use std::{fmt, ops::Neg};
 
 pub struct ConnectFour {
     pub board: [[Token; 6]; 7],
@@ -125,6 +125,14 @@ enum CheckDirection {
 pub enum Player {
     Blue,
     Red,
+}
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Player::Blue => write!(f, "Blue"),
+            Player::Red => write!(f, "Red"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

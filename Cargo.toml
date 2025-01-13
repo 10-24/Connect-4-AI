@@ -4,12 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cargo-watch = "8.5.2"
-colored = "2.1.0"
-crossterm = "0.28.1"
 eframe = "0.30.0"
 egui = "0.30.0"
 rand = "0.8.5"
 rayon = "1.10.0"
-rustyline = "14.0.0"
-termcolor = "1.4.1"
