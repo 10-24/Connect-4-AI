@@ -6,21 +6,13 @@ use crate::player::Player;
 
 use super::connect_four_enums::GameOutcome;
 pub struct ConnectFour {
-   
-    pub board: [f32; 42],
-    pub column_height: [usize; 7],
+    board: GameBoard,
     pub current_player: Player,
     pub victory_threshold: u8,
     pub tokens_placed: u8,
 }
-pub type GameBoard = [f32; 42];\
+pub type GameBoard = [f32; 42];
 impl ConnectFour {
-    
-    pub const COLS: usize = 7;
-    pub const ROWS: usize = 6;
-
-    pub const TOTAL_SPACES: usize = Self::COLS * Self::ROWS;
-  
     pub fn new(victory_threshold: u8) -> ConnectFour {
         ConnectFour {
             victory_threshold,
@@ -64,35 +56,22 @@ impl ConnectFour {
         None
     }
 
-    fn point_to_index(point: &Point2<usize>) -> usize {
-        point.y * Self::COLS + point.x
-    }
-
-    fn set_to_current_players_token(&mut self, point: &Point2<usize>) {
-        let index = Self::point_to_index(point);
-        self.board[index] = self.current_player.to_f32();
-    }
-
-    pub fn get(&self, point: &Point2<usize>) -> &f32 {
-        &self.board[Self::point_to_index(point)]
-    }
     pub fn get_token(&self, point: &Point2<usize>) -> Option<Player> {
         let val = self.get(point);
-        Player::from_f32(val)
+        Player::from_val(val)
     }
 
-    pub fn get_board_blue_perspective(&self) -> [f32;ConnectFour::TOTAL_SPACES] {
-        self.board.clone()
+    pub fn get_board_blue_perspective(&self, device: &Device) -> Tensor {
+        Self::board_to_tensor(self.board, device)
     }
-    pub fn get_board_red_perspective(&self) -> [f32;ConnectFour::TOTAL_SPACES] {
-        let mut cloned_board = self.board.clone();
+    pub fn get_board_red_perspective(&self, device: &Device) -> Tensor {
+        let mut cloned_board = self.board;
         for i in cloned_board.iter_mut() {
             *i *= -1.0;
         }
-        cloned_board
+        Self::board_to_tensor(cloned_board, device)
     }
-    fn board_to_tensor(){
-
+    fn board_to_tensor(board: GameBoard, device: &Device) -> Tensor {
+        Tensor::from_slice(board.as_slice(), (1, Self::TOTAL_SPACES), device).unwrap()
     }
 }
-

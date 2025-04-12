@@ -1,81 +1,68 @@
+use std::f32;
+
 use candle_core::{Device, Tensor};
 use candle_nn::Module;
 use derive_new::new;
+use crate::connect_four::{connect_four::ConnectFour, connect_four_enums::GameOutcome};
+use super::{model::ConnectFourNN, train::{ModelConfig, TrainingConfig}};
 
-use crate::{
-    connect_four::{connect_four::{ConnectFour}, connect_four_enums::GameOutcome},
-    player::Player,
-};
 
-use super::model::ConnectFourNN;
-
-pub struct EpisodeSetup {
-    pub model: ConnectFourNN,
-    pub epsilon: f32,
-    pub device: Device,
-}
-
-pub fn run_episode(setup: &EpisodeSetup) -> EpisodeResult {
+pub fn run_episode(model_config:&ModelConfig, _training_config:&TrainingConfig) -> EpisodeResult {
     let mut memory = Memory::new();
 
     let mut game = ConnectFour::new(3);
-    let mut rounds = 0;
-
     
+   
+    let ModelConfig {model,device,..} = model_config;
     loop {
         // Player Blue
-        let game_state_blue = game.get_board_blue_perspective();
+        let game_state_blue = game.get_board_blue_perspective(device);
 
-        let player_blue_action = get_action(&setup.model, &game_state_blue);
+        let player_blue_action = get_action(model, &game_state_blue);
         let selected_col = player_blue_action;
 
-        memory.record(game_state_blue, player_blue_action as f32, &setup.device);
+        memory.record(game_state_blue, player_blue_action as f32, device);
 
         let game_result_option = game.play_turn(selected_col);
         if let Some(game_result) = game_result_option {
-            return EpisodeResult::new(rounds, game_result, memory);
+            return EpisodeResult::new( game_result, memory);
         }
 
         // Player Red
-        let game_state_red = game.get_board_red_perspective();
-        let selected_col_red = get_action(&setup.model, &game_state_red);
+        let game_state_red = game.get_board_red_perspective(device);
+        let selected_col_red = get_action(model, &game_state_red);
 
-        let game_result_option = game.play_turn(selected_col_red as usize);
+        let game_result_option = game.play_turn(selected_col_red);
         if let Some(game_result) = game_result_option {
             if game_result == GameOutcome::Win {
-                return EpisodeResult::new(rounds, GameOutcome::Loss, memory);
+                return EpisodeResult::new(GameOutcome::Loss, memory);
             }
-            return EpisodeResult::new(rounds, GameOutcome::Tie, memory);
+            return EpisodeResult::new(GameOutcome::Tie, memory);
         }
-
-        rounds += 1;
     }
 }
 
 fn get_action(model: &ConnectFourNN, state: &Tensor) -> usize {
-    let q_vals = model.forward(&state).unwrap();
+    println!("game_state {:?}",state.to_vec2::<f32>().unwrap());
+    println!("game_state len {}",state.to_vec2::<f32>().unwrap().len());
+    let q_vals = model.forward(state).unwrap();
 
-    let q_vals_vec: Vec<f32> = q_vals.to_vec1().unwrap();
+    let q_vals_vec: Tensor = q_vals.get(0).unwrap();
+    let col: u32 = q_vals_vec.argmax(0).unwrap().to_vec0().unwrap();
 
-    let (col, _) = q_vals_vec
-        .iter()
-        .enumerate()
-        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-        .unwrap();
-
-    col
+    println!("selected col {col}");
+    col as usize
 }
 
-#[derive(new)]
+#[derive(new,Default,Clone)]
 pub struct EpisodeResult {
-    pub rounds: u8,
     pub outcome: GameOutcome,
     pub memory: Memory,
 }
-
+#[derive(Default,Clone)]
 pub struct Memory {
-    pub game_states: Vec<GameState>,
-    pub actions: Vec<Tensor>,
+    game_states: Vec<Tensor>,
+    actions: Vec<Tensor>,
 }
 impl Memory {
     fn new() -> Self {
@@ -84,11 +71,20 @@ impl Memory {
             actions: Vec::with_capacity(12),
         }
     }
-    fn record(&mut self, state: GameState, action: f32, device: &Device) {
+    fn record(&mut self, state: Tensor, action: f32, device: &Device) {
         let action_array = [action];
         let action_tensor = Tensor::from_slice(action_array.as_slice(), (1, 1), device).unwrap();
 
         self.actions.push(action_tensor);
         self.game_states.push(state)
+    }
+    pub fn get_game_states(&self) -> Tensor{
+        Self::vec_to_tensor(&self.game_states)
+    }
+    pub fn get_actions(&self) -> Tensor{
+        Self::vec_to_tensor(&self.actions)
+    }
+    fn vec_to_tensor(vec:&Vec<Tensor>) -> Tensor{
+        Tensor::cat(vec.as_slice(), 0).unwrap()
     }
 }

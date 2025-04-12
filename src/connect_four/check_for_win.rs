@@ -55,7 +55,7 @@ impl ConnectFour {
             }
 
             let current_pos_usize = Point2::new(current_pos.x as usize, current_pos.y as usize);
-            if *self.get(&current_pos_usize) != self.current_player.to_f32() {
+            if *self.get(&current_pos_usize) != self.current_player.to_val() {
                 return series_len;
             }
             series_len += 1;

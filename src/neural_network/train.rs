@@ -1,44 +1,19 @@
 use candle_core::Device;
-use candle_nn::{AdamW, Optimizer};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
-use crate::connect_four::connect_four_enums::GameOutcome;
+use rayon::{array, iter::{FromParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator as _, ParallelIterator}};
+use crate::{connect_four::connect_four_enums::GameOutcome, BATCH_SIZE};
 
 use super::{
-    episode::{run_episode, EpisodeSetup},
+    episode::{run_episode, EpisodeResult},
     model::ConnectFourNN,
-    optimize_model::{optimize_model, TrainingFrame},
+    optimize_model::optimize_model,
 };
 
-pub fn train(model_config: ModelConfig, training_config: TrainingConfig) {
-    let ModelConfig { model, device } = model_config;
-    let TrainingConfig {
-        batch_size,
-        num_batches,
-        epsilon,
-        gamma,
-        mut optimizer,
-    } = training_config;
+pub fn train(model_config: ModelConfig, mut training_config: TrainingConfig) {
     
-    let episode_setup = EpisodeSetup {
-        epsilon,
-        model,
-        device: device.clone(),
-    };
-
-    for _ in 0..num_batches {
-        let training_frames: Vec<TrainingFrame> = (0..batch_size)
-            .into_par_iter()
-            .flat_map(|_| {
-                let result = run_episode(&episode_setup);
-                optimize_model(&result, gamma.clone(), &device)
-            })
-            .collect();
-
-        training_frames.iter().for_each(|frame| {
-            optimizer.backward_step(&frame.cost);
-        });
-    }
+    let episode_iter = (0..BATCH_SIZE).into_par_iter().map(|_|run_episode(&model_config, &training_config));
+    let episode_results: Vec<EpisodeResult> = Vec::from_par_iter(episode_iter);
+    
+    optimize_model(episode_results,&model_config,&mut training_config);
 }
 
 pub struct ModelConfig {
@@ -47,8 +22,6 @@ pub struct ModelConfig {
     pub num_data_type: candle_core::DType,
 }
 pub struct TrainingConfig {
-    pub batch_size: u16,
-    pub num_batches: u16,
     pub epsilon: f32, // Exploration rate
     pub gamma: f32,   // Discount factor
     pub optimizer: candle_nn::AdamW,

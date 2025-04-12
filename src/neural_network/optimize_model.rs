@@ -1,59 +1,55 @@
-use candle_core::{Device, Shape, Tensor};
-use candle_nn::{loss, Module};
-use derive_new::new;
+use candle_core::Tensor;
+use candle_nn::{loss, Module, Optimizer};
 
-use crate::connect_four::connect_four_enums::GameOutcome;
+use crate::{connect_four::connect_four_enums::GameOutcome, BATCH_SIZE};
 
-use super::{episode::{Action, EpisodeResult, MemoryFrame}, model::ConnectFourNN, train::{ModelConfig, TrainingConfig}};
+use super::{episode::EpisodeResult, train::{ModelConfig, TrainingConfig}};
 
-pub fn optimize_model(result: &EpisodeResult, model_config: &ModelConfig,training_config:&TrainingConfig) {
+pub fn optimize_model(episode_results: Vec<EpisodeResult>, model_config: &ModelConfig,training_config:&mut TrainingConfig) {
 
-    
-    let ModelConfig { model,device,..}= model_config;
+    let model = &model_config.model;
 
-    let MemoryFrame { action, state:game_state } = result.memory;
+    for episode_result in episode_results {
 
-        let Action {
-            q_values: expected_q_vals_tensor,
-            col: selected_col,
-        } = action;
-
-        let expected_q_vals = model.forward(game_state).unwrap().gather(selected_col, 1).unwrap();
+        let memory = &episode_result.memory;
         
-        let target_rewards = generate_target_rewards(result.outcome,model_config,training_config);
-        let target_q_vals = expected_q_vals.clone().scatter_add(indexes, source, 1);
-        let cost = loss::mse(&expected_q_vals, &target_q_vals).unwrap();
-        
-        actual_reward *= gamma;
+        let game_states = memory.get_game_states();
+        let expected_q_vals = model.forward(&game_states).unwrap();
+        println!("expected_q_vals: {:?}",expected_q_vals.to_vec2::<f32>().unwrap());
+
+        let selected_cols = memory.get_actions();
+
+        let target_rewards = generate_target_rewards(&episode_result.outcome, model_config, training_config);
+        let target_q_vals = expected_q_vals.clone()
+            .scatter_add(&selected_cols, &target_rewards, 1).unwrap();
+        println!("target_q_vals: {:?}",target_q_vals.to_vec2::<f32>().unwrap());
+
+        let loss = loss::mse(&expected_q_vals, &target_q_vals).unwrap();
+
+        println!("loss: {:?}",loss.to_vec2::<f32>().unwrap());
+      
+        training_config.optimizer.backward_step(&loss);
+
+    }
 }
 
-fn adjust_weights(model_config: &ModelConfig,){
-    let MemoryFrame { action, state } = memory_frame;
-    model.forward(&state).unwrap().gather(indexes, dim);
-    
-}
 
 
-fn generate_target_rewards(game_outcome:GameOutcome,model_config: &ModelConfig, training_config:&TrainingConfig) -> Tensor {
+
+fn generate_target_rewards(game_outcome:&GameOutcome,model_config: &ModelConfig, training_config:&TrainingConfig) -> Tensor {
    
-    let ModelConfig {
-        device,
-        ..
-    } = model_config;
 
-    let TrainingConfig { gamma,batch_size,..} = training_config;
-
-    let reward_vec_len = batch_size.clone() as usize;
-    
-    
+    let device = &model_config.device;
+    let gamma = training_config.gamma;
     let terminal_state_value = game_outcome.reward();
     
-    let mut target_state_values: Vec<f32> = vec![0.; reward_vec_len];
+    
+    let mut target_state_values = [f32::default(); BATCH_SIZE];
     let mut current_state_value = terminal_state_value;
     for i in target_state_values.iter_mut().rev() {
-        *i = current_state_value.clone();
+        *i = current_state_value;
         current_state_value *= gamma;
     }
     
-    Tensor::from_vec(target_state_values, (reward_vec_len,1), device).unwrap()
+    Tensor::from_slice(target_state_values.as_slice(), target_state_values.len(), device).unwrap()
 }

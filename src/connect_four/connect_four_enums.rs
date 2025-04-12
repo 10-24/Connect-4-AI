@@ -1,8 +1,9 @@
 use std::ops::Neg;
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Default,Clone,Copy)]
 pub enum GameOutcome {
     Win,
+    #[default]
     Tie,
     Loss,
 }
