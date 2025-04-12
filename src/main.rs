@@ -1,135 +1,45 @@
-
-
-
-
+use candle_core::{DType, Device};
+use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
+use neural_network::{
+    model::ConnectFourNN,
+    train::{train, ModelConfig, TrainingConfig},
+};
 
 mod connect_four;
+mod neural_network;
 mod ui;
+
+mod player;
+
 fn main() {
-   
-    ui::create_window();
+    // ui::create_window();
 
-    // let mut game = ConnectFour::new();
-    // loop {
-    //     let col = get_column(&game);
-    //     let won = game.play(col);
+    const LEARNING_RATE: f64 = 0.0001;
+    const EPSILON: f32 = 0.88;
+    const GAMMA: f32 = 0.91;
+    const NUM_BATCHES: u16 = 5;
+    const BATCH_SIZE: u16 = 5;
+    let device = Device::cuda_if_available(0).unwrap();
 
-    //     if won {
-    //         break;
-    //     }
-    //     game.swap_players();
-    // }
-    // print_victory_text(&game)
+    let var_map = VarMap::new();
+    let vb = VarBuilder::from_varmap(&var_map, DType::F32, &device);
+    let optimizer_config = ParamsAdamW {
+        lr: LEARNING_RATE,
+        ..Default::default()
+    };
+    let optimizer = AdamW::new(var_map.all_vars(), optimizer_config).unwrap();
+
+    let model = ConnectFourNN::new(vb, device.clone()).expect("unable to init nn");
+
+    let model_config = ModelConfig { device, model };
+
+    let training_config = TrainingConfig {
+        optimizer,
+        batch_size: BATCH_SIZE,
+        num_batches: NUM_BATCHES,
+        epsilon: EPSILON, // Exploration rate
+        gamma: GAMMA,     // Discount factor
+    };
+
+    train(model_config, training_config);
 }
-
-
-
-
-// fn get_column(game: &connect_four::ConnectFour) -> i8 {
-//     let mut selected_col: i8 = 3;
-
-//     loop {
-//         clear_terminal();
-//         print_player(game.player);
-//         print_board(game, selected_col);
-        
-
-//         let key = listen_for_key().unwrap();
-//         match key {
-//             KeyPress::Left => selected_col = (selected_col - 1) % 7,
-//             KeyPress::Right => selected_col = (selected_col + 1) % 7,
-//             KeyPress::PlaceToken => break,
-//         }
-//     }
-//     selected_col
-// }
-// fn print_player(player: connect_four::Player) {
-//     let mut blue_player: colored::ColoredString = " Player 1 ".blue();
-//     let mut red_player: colored::ColoredString = " Player 2 ".red();
-
-//     if let connect_four::Player::Blue = player {
-//         blue_player = blue_player.white().on_blue();
-//     } else {
-//         red_player = red_player.white().on_red();
-//     }
-
-//     println!("{} | {}", blue_player, red_player);
-// }
-// fn print_board(game: &ConnectFour, selected_col: i8) {
-    
-//     for y in (0..game.board[0].len()).rev() {
-       
-//         print!("{} |",  y.to_string().green());
-//         for x in 0..game.board.len() {
-//             let current_token = game.board[x][y];
-
-//             let mut area = match current_token {
-//                 connect_four::Token::Empty => " X ".dimmed(),
-//                 connect_four::Token::Base(connect_four::Player::Blue) => " 0 ".on_bright_blue(),
-//                 connect_four::Token::Base(connect_four::Player::Red) => " 0 ".on_bright_red(),
-//             };
-
-//             if x == selected_col as usize && y == game.column_height[x] as usize {
-//                 area = match game.player {
-//                     connect_four::Player::Blue => area.on_bright_black().blue(),
-//                     connect_four::Player::Red => area.on_bright_black().red(),
-//                 }
-//             }
-//             print!(" {}", area)
-//         }
-//         print!("|\n\n");
-//     }
-//     print!("  ");
-//     for x in 0..game.board.len() {
-//         print!("   {}",x.to_string().green());
-//     }
-//     println!()
-// }
-// fn listen_for_key() -> Result<KeyPress, std::io::Error> {
-//     enable_raw_mode()?; // Enable raw mode to capture real-time input
-//     loop {
-//         if event::poll(std::time::Duration::from_millis(200))? {
-//             if let Event::Key(key_event) = event::read()? {
-//                 // Only handle KeyDown events (if supported) or avoid repeated events
-//                 if key_event.kind == crossterm::event::KeyEventKind::Press {
-//                     match key_event.code {
-//                         KeyCode::Left => {
-//                             disable_raw_mode()?; // Disable raw mode before returning
-//                             return Ok(KeyPress::Left);
-//                         }
-//                         KeyCode::Right => {
-//                             disable_raw_mode()?; // Disable raw mode before returning
-//                             return Ok(KeyPress::Right);
-//                         }
-//                         KeyCode::Char(' ') => {
-//                             disable_raw_mode()?; // Disable raw mode before returning
-//                             return Ok(KeyPress::PlaceToken);
-//                         }
-//                         _ => continue, // Ignore other keys
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// #[derive(Debug)]
-// enum KeyPress {
-//     Right,
-//     Left,
-//     PlaceToken,
-// }
-// fn clear_terminal() {
-//     print!("{}[2J", 27 as char);
-// }
-
-// fn print_victory_text(game: &ConnectFour) {
-//     print_board(game, 0);
-
-//     let text = match game.player {
-//         connect_four::Player::Blue => "Player Blue Won".on_bright_blue(),
-//         connect_four::Player::Red => "Player Red Won".on_bright_red(),
-//     };
-
-//     println!("{}", text);
-// }

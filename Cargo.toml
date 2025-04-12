@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+candle-core = "0.8.4"
+candle-nn = "0.8.4"
+derive-new = "0.7.0"
 eframe = "0.30.0"
 egui = "0.30.0"
+nalgebra = "0.33.2"
 rand = "0.8.5"
 rayon = "1.10.0"
