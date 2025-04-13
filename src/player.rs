@@ -9,8 +9,8 @@ pub enum Player {
 impl Player {
     pub fn to_val(&self) -> f32 {
         match self {
-            Player::Blue => 1,
-            Player::Red => -1,
+            Player::Blue => 1.0,
+            Player::Red => -1.0,
         }
     }
 }
@@ -22,10 +22,10 @@ impl Player {
             Player::Red => Player::Blue,
         };
     }
-    pub fn from_val(val: i8) -> Option<Player> {
+    pub fn from_val(val: f32) -> Option<Player> {
         match val {
-            1 => Some(Player::Blue),
-            -1 => Some(Player::Red),
+            1.0 => Some(Player::Blue),
+            -1.0 => Some(Player::Red),
             _ => None,
         }
     }

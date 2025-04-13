@@ -4,7 +4,7 @@ use std::ops::Neg;
 use nalgebra::Point2;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator};
 
-use super::{connect_four::ConnectFour, connect_four_enums::Delta};
+use super::{connect_four::ConnectFour, connect_four_enums::Delta, game_board::GameBoard};
 
 
 
@@ -20,6 +20,7 @@ impl ConnectFour {
             .par_iter()
             .any(|direction|{ self.check_direction_for_win(&new_token, direction)})
     }
+
     fn check_direction_for_win(
         &self,
         new_token_pos: &Point2<usize>,
@@ -50,12 +51,12 @@ impl ConnectFour {
             }
 
             // Checking for overflow
-            if current_pos.x as usize >= Self::COLS || current_pos.y as usize >= Self::ROWS {
+            if current_pos.x as usize >= GameBoard::COLS || current_pos.y as usize >= GameBoard::ROWS {
                 return series_len;
             }
 
             let current_pos_usize = Point2::new(current_pos.x as usize, current_pos.y as usize);
-            if *self.get(&current_pos_usize) != self.current_player.to_val() {
+            if self.get(&current_pos_usize) != self.current_player.to_val() {
                 return series_len;
             }
             series_len += 1;
