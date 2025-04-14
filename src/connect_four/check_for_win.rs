@@ -56,7 +56,8 @@ impl ConnectFour {
             }
 
             let current_pos_usize = Point2::new(current_pos.x as usize, current_pos.y as usize);
-            if self.get(&current_pos_usize) != self.current_player.to_val() {
+            let current_token = self.board.get_token(&current_pos_usize);
+            if current_token != Some(self.current_player) {
                 return series_len;
             }
             series_len += 1;

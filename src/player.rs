@@ -13,6 +13,12 @@ impl Player {
             Player::Red => -1.0,
         }
     }
+    pub fn to_string(&self) -> String {
+        match self {
+            Player::Blue => "Blue".to_string(),
+            Player::Red => "Red".to_string(),
+        }
+    }
 }
 
 impl Player {

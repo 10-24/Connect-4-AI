@@ -1,9 +1,9 @@
 use candle_core::Tensor;
 use candle_nn::{loss, Module, Optimizer};
 
-use crate::{connect_four::connect_four_enums::GameOutcome, BATCH_SIZE};
+use crate::{connect_four::connect_four_enums::GameOutcome};
 
-use super::{episode::EpisodeResult, train::{ModelConfig, TrainingConfig}};
+use super::{episode::EpisodeResult, train::{ModelConfig, TrainingConfig, BATCH_SIZE}};
 
 pub fn optimize_model(episode_results: Vec<EpisodeResult>, model_config: &ModelConfig,training_config:&mut TrainingConfig) {
 

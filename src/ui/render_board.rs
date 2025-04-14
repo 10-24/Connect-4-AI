@@ -1,11 +1,11 @@
-use egui::{Color32, Pos2, Rect, Ui};
+use egui::{Color32, Pos2, Rect, Stroke, Ui};
 use nalgebra::Point2;
 
-use crate::{connect_four::connect_four::ConnectFour, player::Player};
+use crate::{connect_four::{ game_board::GameBoard}, player::Player};
 
-pub fn render_board(ui: &mut Ui, game:ConnectFour, board_options: &BoardRenderOptions){
+pub fn render_board(ui: &mut Ui, board:&GameBoard, board_options: &BoardRenderOptions){
     create_empty_board(ui, &board_options);
-    populate_board(ui, &board_options, &self.game);
+    populate_board(ui, &board,&board_options,);
 }
 
 fn create_empty_board(ui: &mut Ui, board_options: &BoardRenderOptions) {
@@ -17,11 +17,11 @@ fn create_empty_board(ui: &mut Ui, board_options: &BoardRenderOptions) {
         max: Pos2 {
             x: board_options.mx
                 + board_options.token_gap
-                + (ConnectFour::COLS as f32)
+                + (GameBoard::COLS as f32)
                     * ((board_options.token_radius * 2.0) + board_options.token_gap),
             y: board_options.my
                 + board_options.token_gap
-                + (ConnectFour::ROWS as f32)
+                + (GameBoard::ROWS as f32)
                     * ((board_options.token_radius * 2.0) + board_options.token_gap),
         },
     };
@@ -30,24 +30,22 @@ fn create_empty_board(ui: &mut Ui, board_options: &BoardRenderOptions) {
         .rect_stroke(board, egui::Rounding::same(14.0), board_options.stroke);
 }
 
-fn populate_board(ui: &mut Ui, board_options: &BoardRenderOptions, game: &ConnectFour) {
-    let mx = board_options.mx;
-    let my = board_options.my;
-    let token_gap = board_options.token_gap;
-    let token_radius = board_options.token_radius;
+fn populate_board(ui: &mut Ui,board:&GameBoard, board_options: &BoardRenderOptions, ) {
+
+    let BoardRenderOptions { mx,my,token_gap,token_radius,stroke}= board_options;
     let token_diameter = token_radius * 2.0;
-    let stroke = board_options.stroke;
+   
     
     let mut pos = Pos2 {
         x: mx + token_gap + token_radius,
         y: my + token_gap + token_radius,
     };
 
-    for y in (0..ConnectFour::ROWS).rev() {
-        for x in 0..ConnectFour::COLS {
-            let token = game.get_token(&Point2::new(x,y));
+    for y in (0..GameBoard::ROWS).rev() {
+        for x in 0..GameBoard::COLS {
+            let token = board.get_token(&Point2::new(x,y));
             let token_color = get_color(token);
-            ui.painter().circle(pos, token_radius, token_color, stroke);
+            ui.painter().circle(pos, *token_radius, token_color, *stroke);
 
             pos.x += token_gap + token_diameter;
         }

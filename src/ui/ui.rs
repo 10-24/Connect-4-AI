@@ -2,9 +2,10 @@ use std::cmp::min;
 use egui::{Button, Color32, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
 use nalgebra::Point2;
 
-use crate::{connect_four::connect_four::ConnectFour, player::Player};
+use crate::{connect_four::{connect_four::ConnectFour, game_board::GameBoard}, player::Player};
 
-use super::render_board::BoardRenderOptions;
+use super::render_board::{render_board, BoardRenderOptions};
+
 
 pub fn create_window() {
     let native_options = eframe::NativeOptions::default();
@@ -46,7 +47,7 @@ impl eframe::App for MyEguiApp {
                 },
             };
 
-        
+            render_board(ui,&self.game.board,&board_options);
 
             if let Some(victorious_player) = self.victorious_player {
                 let button = create_reset_button(ui, &victorious_player);
@@ -109,7 +110,7 @@ fn get_selected_column(ui: &mut Ui, board_options: &BoardRenderOptions) -> usize
 
     let col = ((mouse_x - leftward_margin) / col_width).floor();
 
-    min(col as usize, ConnectFour::COLS)
+    min(col as usize, GameBoard::COLS)
 }
 fn create_reset_button(ui: &mut Ui, victorious_player: &Player) -> Response {
     let text = format!("Player {} won! Reset?", victorious_player);
