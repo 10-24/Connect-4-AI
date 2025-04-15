@@ -27,7 +27,7 @@ impl ConnectFour {
         self.tokens_placed = 0;
     }
 
-    pub fn play_turn(&mut self, col: usize) -> Option<GameOutcome> {
+    pub fn play_turn(&mut self, col: u8) -> Option<GameOutcome> {
 
         let new_token_pos = self.board.add_token(col, self.current_player);
         if let Some(new_token_pos) = new_token_pos {
@@ -43,7 +43,6 @@ impl ConnectFour {
                 return Some(GameOutcome::Tie);
             }
 
-            self.current_player.switch();
             None
         } else {
             None

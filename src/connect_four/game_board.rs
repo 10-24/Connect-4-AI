@@ -2,6 +2,7 @@ use crate::player::Player;
 use candle_core::{Device, Tensor};
 use nalgebra::Point2;
 
+#[derive(Clone)]
 pub struct GameBoard {
     board: [f32; Self::TOTAL_SPACES],
 
@@ -19,10 +20,9 @@ impl GameBoard {
         }
     }
 
-    pub fn add_token(&mut self, col: usize, player: Player) -> Option<Point2<usize>> {
-
+    pub fn add_token(&mut self, col: u8, player: Player) -> Option<Point2<usize>> {
+        let col = col as usize;
         let row = self.column_height[col];
-
         if row >= Self::ROWS {
             return None;
         }
@@ -36,7 +36,8 @@ impl GameBoard {
         Some(new_token_pos)
     }
 
-    pub fn _remove_token(&mut self, col: usize) {
+    pub fn remove_token(&mut self, col: u8) {
+        let col = col as usize;
         let row = self.column_height[col] as i8 - 1;
 
         if row < 0 {
@@ -69,10 +70,11 @@ impl GameBoard {
         self.column_height.fill(0);
     }
 
-    pub fn get_blue_perspective(&self, device: &Device) -> Tensor {
-        Self::board_to_tensor(self.board, device)
-    }
-    pub fn get_red_perspective(&self, device: &Device) -> Tensor {
+    pub fn get_board_tensor(&self, player: &Player, device: &Device) -> Tensor {
+        if *player == Player::Blue {
+            return Self::board_to_tensor(self.board, device);
+        }
+
         let mut cloned_board = self.board;
         for i in cloned_board.iter_mut() {
             *i *= -1.0;

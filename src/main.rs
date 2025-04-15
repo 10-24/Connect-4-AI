@@ -1,16 +1,15 @@
-use player::Player;
-use ui::spectate_game::{self, GameTurn};
+use std::path::Path;
+
+use connect_four::player;
+use training::{memory::episode_memory::EpisodeMemory, train::train};
+use ui::spectate_game::spectate_game;
 
 mod connect_four;
-mod neural_network;
-mod player;
+mod training;
 mod ui;
 
 fn main() {
-    let game_record = vec![
-        GameTurn::new(Player::Blue, 1),
-        GameTurn::new(Player::Red, 2),
-    ];
-    spectate_game::spectate_game(game_record);
-    // train();
+    // let episode = EpisodeMemory::from_file_path(Path::new("episode_data\\Batch_2025-04-15_12-11-28\\Episode_3.csv"));
+    // spectate_game(episode);
+    train();
 }

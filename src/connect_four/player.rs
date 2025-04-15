@@ -1,6 +1,7 @@
 use core::fmt;
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug,Serialize,Deserialize)]
 pub enum Player {
     Blue,
     Red,
@@ -11,12 +12,6 @@ impl Player {
         match self {
             Player::Blue => 1.0,
             Player::Red => -1.0,
-        }
-    }
-    pub fn to_string(&self) -> String {
-        match self {
-            Player::Blue => "Blue".to_string(),
-            Player::Red => "Red".to_string(),
         }
     }
 }
