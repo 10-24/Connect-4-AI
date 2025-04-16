@@ -5,10 +5,10 @@ use crate::connect_four::{connect_four_enums::GameOutcome, player::Player};
 
 use super::{memory::{batch::Batch, episode_memory::EpisodeMemory}, train::{ModelConfig, TrainingConfig, BATCH_SIZE}};
 
-pub fn optimize_model(batch: Batch, model_config: &ModelConfig,training_config:&mut TrainingConfig) {
+pub fn optimize_model(batch: Batch, model_config: &ModelConfig,training_config:&mut TrainingConfig) -> f32 {
 
     let model = &model_config.model;
-
+    let mut loss_sum: f32 = 0.0;
     for memory in batch.episodes {
 
         let game_states = memory.get_game_states(&Player::Blue, &model_config.device);
@@ -22,12 +22,11 @@ pub fn optimize_model(batch: Batch, model_config: &ModelConfig,training_config:&
             .scatter_add(&selected_cols, &target_rewards, 1).unwrap();
 
         let loss = loss::mse(&expected_q_vals, &target_q_vals).unwrap();
-
-        println!("loss: {:?}",loss.to_scalar::<f32>().unwrap());
-      
         training_config.optimizer.backward_step(&loss);
         
+        loss_sum += loss.to_scalar::<f32>().unwrap();
     }
+    loss_sum / BATCH_SIZE as f32
 }
 
 

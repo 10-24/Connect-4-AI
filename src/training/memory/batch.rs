@@ -1,7 +1,7 @@
 use csv::{Error, Reader};
 use rayon::iter::{FromParallelIterator, ParallelIterator};
 use serde::Serialize;
-use std::{fs::File, io::Read, path::Path};
+use std::{array, fs::File, io::{Read, Write}, path::Path};
 
 use crate::{
     connect_four::player::Player,
@@ -18,7 +18,7 @@ pub struct Batch {
 impl Batch {
     pub fn new() -> Self {
         Self {
-            episodes: Vec::with_capacity(BATCH_SIZE),
+            episodes: Vec::with_capacity(BATCH_SIZE)
         }
     }
     pub fn from_par_iter<I>(iter: I) -> Self
