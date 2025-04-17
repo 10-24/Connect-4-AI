@@ -1,11 +1,16 @@
 use csv::{Error, Reader};
 use rayon::iter::{FromParallelIterator, ParallelIterator};
 use serde::Serialize;
-use std::{array, fs::File, io::{Read, Write}, path::Path};
+use std::{
+    array,
+    fs::File,
+    io::{Read, Write},
+    path::Path,
+};
 
 use crate::{
     connect_four::player::Player,
-    training::{memory::episode_memory::GameTurn, train::BATCH_SIZE},
+    training::{memory::episode_memory::GameTurn, train::{BATCH_SIZE, NUM_BATCHES}},
 };
 use chrono::Local;
 
@@ -18,7 +23,7 @@ pub struct Batch {
 impl Batch {
     pub fn new() -> Self {
         Self {
-            episodes: Vec::with_capacity(BATCH_SIZE)
+            episodes: Vec::with_capacity(BATCH_SIZE),
         }
     }
     pub fn from_par_iter<I>(iter: I) -> Self
@@ -46,12 +51,27 @@ impl Batch {
         }
     }
 
-    pub fn from_folder(batch_folder: &Path) -> Self {
+    pub fn from_folder(batches_folder: &Path) -> Vec<Self> {
+        let mut batches = Vec::with_capacity(NUM_BATCHES as usize);
+
+        let dir = fs::read_dir(batches_folder).unwrap();
+        for entry in dir.into_iter() {
+            let entry = entry.unwrap();
+            let new_batch = Self::from(&entry.path());
+
+            batches.push(new_batch);
+        }
+
+        batches
+        
+    }
+
+    pub fn from(batch_folder: &Path) -> Self {
         let mut episodes = Vec::with_capacity(BATCH_SIZE);
         let dir = fs::read_dir(batch_folder).unwrap();
         for entry in dir.into_iter() {
             let entry = entry.unwrap();
-            let new_episode = EpisodeMemory::from_file_path(&entry.path());
+            let new_episode = EpisodeMemory::from_path(&entry.path());
 
             episodes.push(new_episode);
         }

@@ -2,14 +2,13 @@ use std::f32;
 use candle_core::Tensor;
 use super::{
     memory::episode_memory::EpisodeMemory,
-    model::ConnectFourNN,
-    train::{self, ModelConfig, TrainingConfig, BATCH_SIZE},
+    train::{ self, ModelConfig, TrainingConfig, BATCH_SIZE },
 };
 use crate::connect_four::{
     connect_four::ConnectFour, connect_four_enums::GameOutcome, game_board::GameBoard, player::Player
 };
 use candle_nn::{ops::softmax, Module};
-use rand::{distributions::WeightedIndex, prelude::Distribution, rngs::ThreadRng};
+use rand::{ distributions::WeightedIndex, prelude::Distribution, rngs::ThreadRng, Rng};
 
 
 pub fn run_episode(model_config: &ModelConfig, training_config: &TrainingConfig) -> EpisodeMemory {
@@ -18,7 +17,7 @@ pub fn run_episode(model_config: &ModelConfig, training_config: &TrainingConfig)
     let mut game = ConnectFour::new(3);
 
     let ModelConfig { model, device, .. } = model_config;
-    let mut rng = rand::thread_rng();
+    let mut rng: ThreadRng = rand::thread_rng();
 
     loop {
         let game_state = game.board.get_board_tensor(&game.current_player, device);
@@ -38,14 +37,18 @@ pub fn run_episode(model_config: &ModelConfig, training_config: &TrainingConfig)
 
 fn get_action(state: &Tensor,rng:&mut ThreadRng, model_config:&ModelConfig,training_config:&TrainingConfig,) -> u8 {
     let q_vals_t = model_config.model.forward(state).unwrap();
-    let normalized_q_vals_t = softmax(&q_vals_t, 1).unwrap();
-    let col = sample_dist(&normalized_q_vals_t,rng,model_config,training_config);
-    col as u8
+
+    // let normalized_q_vals_t = softmax(&q_vals_t, 1).unwrap();
+    // let col = sample_dist_random(&normalized_q_vals_t,rng,model_config,training_config);
+    if rng.gen_bool(training_config.epsilon as f64) {
+        return q_vals_t.argmax(1).unwrap().to_vec1::<u32>().unwrap()[0] as u8
+    }
+    rng.gen_range(0..GameBoard::COLS as u8)
 }
-fn sample_dist(normalized_q_vals_t:&Tensor,rng:&mut ThreadRng, model_config:&ModelConfig,training_config:&TrainingConfig) -> usize {
+
+fn _sample_dist_random(normalized_q_vals_t:&Tensor,rng:&mut ThreadRng, model_config:&ModelConfig,training_config:&TrainingConfig) -> usize {
 
     let output_t_shape = normalized_q_vals_t.shape();
-
     let epsilon = training_config.epsilon;
     let device = &model_config.device;
 

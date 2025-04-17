@@ -31,7 +31,6 @@ impl EguiSpectatorWindow {
     fn _print_turn(&self){
         let turn_index = (self.episode.len() - 1).min(self.turn + 1);
         let player = self.episode.get(turn_index).player;
-        println!("Player {}'s Turn. {}/{} ",player,turn_index,self.episode.len());
     }
 }
 impl eframe::App for EguiSpectatorWindow {

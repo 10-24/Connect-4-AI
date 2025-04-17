@@ -27,20 +27,20 @@ impl EpisodeMemory {
         self.turns.push(new_turn)
     }
 
-    pub fn get_game_states(&self, player: &Player, device: &Device) -> Tensor {
-        let mut boards = Vec::with_capacity(self.turns.len() / 2 + 1);
+    pub fn get_game_states(&self, player_perspective: &Player, device: &Device) -> Tensor {
+        let mut game_states = Vec::with_capacity(self.turns.len() / 2 + 1);
         let mut board_template = GameBoard::new();
 
-        for action in self.turns.iter() {
-            board_template.add_token(action.col, action.player);
-            if action.player != *player {
+        for turn in self.turns.iter() {
+            board_template.add_token(turn.col, turn.player);
+            if turn.player != *player_perspective {
                 continue;
             }
-            let board_tensor: Tensor = board_template.get_board_tensor(player, device);
-            boards.push(board_tensor);
+            let board_tensor: Tensor = board_template.get_board_tensor(player_perspective, device);
+            game_states.push(board_tensor);
         }
 
-        Tensor::cat(boards.as_slice(), 0).unwrap()
+        Tensor::cat(game_states.as_slice(), 0).unwrap()
     }
     pub fn get_actions(&self, player: &Player, device: &Device) -> Tensor {
         let iter = self
@@ -48,10 +48,16 @@ impl EpisodeMemory {
             .iter()
             .filter(|turn| turn.player == *player)
             .map(|turn| turn.col as u32);
-        Tensor::from_iter(iter, device).unwrap().unsqueeze(1).unwrap()
+        Tensor::from_iter(iter, device)
+            .unwrap()
+            .unsqueeze(1)
+            .unwrap()
     }
-    pub fn number_of_turns(&self, player: &Player,) -> usize {
-        self.turns.iter().filter(|turn|turn.player == *player).count()
+    pub fn number_of_turns(&self, player: &Player) -> usize {
+        self.turns
+            .iter()
+            .filter(|turn| turn.player == *player)
+            .count()
     }
     pub fn outcome(&self, player: &Player) -> GameOutcome {
         if self.turns.len() == GameBoard::TOTAL_SPACES {
@@ -75,7 +81,7 @@ impl EpisodeMemory {
         writer.flush();
     }
 
-    pub fn from_file_path(path: &Path) -> Self {
+    pub fn from_path(path: &Path) -> Self {
         let file = File::open(path).unwrap();
         let mut reader = csv::Reader::from_reader(file);
         let turns: Vec<GameTurn> = reader.deserialize().map(|result| result.unwrap()).collect();

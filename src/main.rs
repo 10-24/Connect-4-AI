@@ -9,9 +9,8 @@ mod training;
 mod ui;
 
 fn main() {
-    // let path = "episode_data/Batch_2025-04-15_20-16-01/Episode_24.csv";
-    // let episode = EpisodeMemory::from_file_path(Path::new(path));
+    // let path = "episode_data\\Batch_2025-04-17_07-38-29\\Episode_0.csv";
+    // let episode = EpisodeMemory::from_path(Path::new(path));
     // spectate_game(episode);
     train();
 }
-
