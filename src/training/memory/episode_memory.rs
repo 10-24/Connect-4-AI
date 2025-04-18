@@ -29,15 +29,16 @@ impl EpisodeMemory {
 
     pub fn get_game_states(&self, player_perspective: &Player, device: &Device) -> Tensor {
         let mut game_states = Vec::with_capacity(self.turns.len() / 2 + 1);
+        
         let mut board_template = GameBoard::new();
-
         for turn in self.turns.iter() {
-            board_template.add_token(turn.col, turn.player);
             if turn.player != *player_perspective {
+                board_template.add_token(turn.col, turn.player);
                 continue;
             }
             let board_tensor: Tensor = board_template.get_board_tensor(player_perspective, device);
             game_states.push(board_tensor);
+            board_template.add_token(turn.col, turn.player);
         }
 
         Tensor::cat(game_states.as_slice(), 0).unwrap()

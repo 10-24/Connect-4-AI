@@ -39,7 +39,7 @@ impl Batch {
     }
 
     pub fn save(&self, folder: &Path) {
-        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+        let timestamp = Local::now().format("%m-%d_%H-%M").to_string();
         let batch_folder_name = format!("Batch_{timestamp}");
         let batch_folder = folder.join(batch_folder_name);
         fs::create_dir(batch_folder.clone());
