@@ -9,7 +9,7 @@ use super::render_board::{render_board, BoardRenderOptions};
 
 pub fn create_window() {
     let native_options = eframe::NativeOptions::default();
-    eframe::run_native(
+    let _ = eframe::run_native(
         "Connect 4",
         native_options,
         Box::new(|_cc| Ok(Box::new(MyEguiApp::new()))),
@@ -99,7 +99,7 @@ fn render_moveable_token(ui: &mut Ui, board_options: &BoardRenderOptions, game: 
         leftward_margin + token_radius + token_gap / 2.0 + mouse_col * (token_gap + token_diameter)
     }
 }
-fn get_selected_column(ui: &mut Ui, board_options: &BoardRenderOptions) -> u8 {
+fn get_selected_column(ui: &mut Ui, board_options: &BoardRenderOptions) -> usize {
     let leftward_margin = board_options.mx + board_options.token_gap / 2.0;
     let token_diameter = board_options.token_radius * 2.0;
     let col_width = token_diameter + board_options.token_gap;
@@ -110,7 +110,7 @@ fn get_selected_column(ui: &mut Ui, board_options: &BoardRenderOptions) -> u8 {
 
     let col = ((mouse_x - leftward_margin) / col_width).floor();
 
-    min(col as u8, GameBoard::COLS as u8)
+    min(col as usize, GameBoard::COLS)
 }
 fn create_reset_button(ui: &mut Ui, victorious_player: &Player) -> Response {
     let text = format!("Player {} won! Reset?", victorious_player);

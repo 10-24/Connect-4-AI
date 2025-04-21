@@ -9,7 +9,8 @@ use super::{connect_four::ConnectFour, connect_four_enums::Delta, game_board::Ga
 
 
 impl ConnectFour {
-    const CHECK_DIRECTIONS: [Point2<Delta>; 4] = [
+    const CHECK_DIRECTIONS
+    : [Point2<Delta>; 4] = [
     Point2::new(Delta::Zero, Delta::Increment),
     Point2::new(Delta::Increment, Delta::Zero),
     Point2::new(Delta::Increment, Delta::Increment),

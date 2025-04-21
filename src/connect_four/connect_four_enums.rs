@@ -1,11 +1,25 @@
 use std::ops::Neg;
 
-#[derive(PartialEq,Default,Clone,Copy)]
-pub enum GameOutcome {
-    Win,
-    #[default]
+use crate::training::train::{LOSS_REWARD, TIE_REWARD, WIN_REWARD};
+
+use super::player::{self, Player};
+
+#[derive(PartialEq,Clone,Copy)]
+pub enum Outcome {
+    Win(Player),
     Tie,
-    Loss,
+}
+impl Outcome {
+    pub fn reward(&self,player:&Player) -> f32 {
+        if let Self::Win(victorious_player) = *self {
+            if *player == victorious_player {
+                return 1.0;
+            }
+            return -0.8;
+        }
+
+        -0.1
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

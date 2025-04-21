@@ -1,13 +1,13 @@
 use derive_new::new;
 use egui::{Color32, Key, Label, Pos2, Response, RichText, Sense, Stroke, Ui};
 
-use crate::{connect_four::game_board::GameBoard, player::Player, training::memory::episode_memory::{EpisodeMemory, GameTurn}};
+use crate::{connect_four::game_board::GameBoard, player::Player, training::memory::episode_memory::{EpisodeMemory, GameFrame}};
 
 use super::render_board::{render_board, BoardRenderOptions};
 
 pub fn spectate_game(episode:EpisodeMemory){
     let native_options = eframe::NativeOptions::default();
-    eframe::run_native(
+    let _ = eframe::run_native(
         "Connect 4",
         native_options,
         Box::new(|_cc| Ok(Box::new(EguiSpectatorWindow::new(episode)))),
@@ -29,8 +29,8 @@ impl EguiSpectatorWindow {
     }
 
     fn _print_turn(&self){
-        let turn_index = (self.episode.len() - 1).min(self.turn + 1);
-        let player = self.episode.get(turn_index).player;
+        // let turn_index = (self.episode.len() - 1).min(self.turn + 1);
+        // let player = self.episode.get(turn_index).player;
     }
 }
 impl eframe::App for EguiSpectatorWindow {

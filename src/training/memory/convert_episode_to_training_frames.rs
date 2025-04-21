@@ -1,0 +1,37 @@
+use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+
+use crate::{connect_four::player::Player, training::train::TrainingConfig};
+
+use super::episode_memory::{EpisodeMemory, TrainingFrame};
+
+pub fn convert_episode_to_training_frames(
+    episode: EpisodeMemory,
+    training_config: &TrainingConfig,
+) -> Vec<TrainingFrame> {
+    let outcome = episode.outcome();
+    let mut blue_current_state_value = outcome.reward(&Player::Blue);
+    let mut red_current_state_value = outcome.reward(&Player::Red);
+
+    let EpisodeMemory { id, frames } = episode;
+    let gamma = training_config.gamma;
+
+    frames
+        .into_iter()
+        .rev()
+        .map(move |game_frame| {
+            let player = &game_frame.player;
+
+            let value = if *player == Player::Blue {
+                let v = blue_current_state_value;
+                blue_current_state_value *= gamma;
+                v
+            } else {
+                let v = red_current_state_value;
+                red_current_state_value *= gamma;
+                v
+            };
+            TrainingFrame::new(id, game_frame, value)
+        })
+        .rev()
+        .collect()
+}

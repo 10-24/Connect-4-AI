@@ -1,3 +1,3 @@
 pub mod optimize_model;
 pub mod tensor_ops;
-mod generate_target_rewards;
+mod calculate_target_q_vals;

@@ -1,5 +1,5 @@
-use crate::player::Player;
-use candle_core::{Device, Tensor};
+use crate::{player::Player, Bknd, DEVICE};
+use burn::tensor::Tensor;
 use nalgebra::Point2;
 
 #[derive(Clone)]
@@ -20,8 +20,7 @@ impl GameBoard {
         }
     }
 
-    pub fn add_token(&mut self, col: u8, player: Player) -> Option<Point2<usize>> {
-        let col = col as usize;
+    pub fn add_token(&mut self, col: usize, player: Player) -> Option<Point2<usize>> {
         let row = self.column_height[col];
         if row >= Self::ROWS {
             return None;
@@ -36,14 +35,10 @@ impl GameBoard {
         Some(new_token_pos)
     }
 
-    pub fn remove_token(&mut self, col: u8) {
-        let col = col as usize;
-        let row = self.column_height[col] as i8 - 1;
+    pub fn remove_token(&mut self, col: usize) {
+  
+        let row = self.column_height[col] - 1;
 
-        if row < 0 {
-            return;
-        }
-        let row = row as usize;
         let token_pos = Point2::new(col, row);
 
         let index = Self::point_to_index(&token_pos);
@@ -65,23 +60,24 @@ impl GameBoard {
         point.y * Self::COLS + point.x
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.board.fill(0.0);
         self.column_height.fill(0);
     }
 
-    pub fn get_board_tensor(&self, player: &Player, device: &Device) -> Tensor {
+    pub fn as_tensor(&self, player: &Player) -> Tensor<Bknd,1> {
         if *player == Player::Blue {
-            return Self::board_to_tensor(self.board, device);
+            return Self::board_to_tensor(self.board);
         }
 
         let mut cloned_board = self.board;
         for i in cloned_board.iter_mut() {
             *i *= -1.0;
         }
-        Self::board_to_tensor(cloned_board, device)
+        Self::board_to_tensor(cloned_board)
     }
-    fn board_to_tensor(board: [f32; Self::TOTAL_SPACES], device: &Device) -> Tensor {
-        Tensor::from_slice(board.as_slice(), (1, Self::TOTAL_SPACES), device).unwrap()
+    fn board_to_tensor(board: [f32; Self::TOTAL_SPACES]) -> Tensor<Bknd, 1> {
+        Tensor::from_floats(board, &DEVICE)
+        // Tensor::from_slice(board.as_slice(), (1, Self::TOTAL_SPACES), device).unwrap()
     }
 }

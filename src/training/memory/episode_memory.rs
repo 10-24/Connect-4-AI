@@ -1,103 +1,75 @@
-use std::{fs::File, io::Read, option::Iter, path::Path};
+use core::f32;
+use std::{default, fs::File, io::Read, option::Iter, path::Path};
 
-use candle_core::{Device, Tensor};
-use csv::Reader;
+use burn::tensor::{Int, Tensor};
 use derive_new::new;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 
-use crate::connect_four::{
-    connect_four::ConnectFour, connect_four_enums::GameOutcome, game_board::GameBoard,
-    player::Player,
+use crate::{
+    connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
+    training::train::TrainingConfig,
+    Bknd, DEVICE,
 };
 
-#[derive(Serialize)]
 pub struct EpisodeMemory {
-    turns: Vec<GameTurn>,
+    pub frames: Vec<GameFrame>,
+    pub id: u16,
 }
 impl EpisodeMemory {
-    pub fn new() -> Self {
+    pub fn new(id: u16) -> Self {
         Self {
-            turns: Vec::with_capacity(12),
+            id,
+            frames: Vec::with_capacity(42),
         }
     }
 
-    pub fn record_turn(&mut self, player: Player, selected_col: u8) {
-        let new_turn = GameTurn::new(player, selected_col);
-        self.turns.push(new_turn)
+    pub fn record_turn(&mut self, player: Player, selected_col: usize) {
+        let new_turn = GameFrame::new(player, selected_col);
+        self.frames.push(new_turn)
     }
 
-    pub fn get_game_states(&self, player_perspective: &Player, device: &Device) -> Tensor {
-        let mut game_states = Vec::with_capacity(self.turns.len() / 2 + 1);
-        
-        let mut board_template = GameBoard::new();
-        for turn in self.turns.iter() {
-            if turn.player != *player_perspective {
-                board_template.add_token(turn.col, turn.player);
-                continue;
-            }
-            let board_tensor: Tensor = board_template.get_board_tensor(player_perspective, device);
-            game_states.push(board_tensor);
-            board_template.add_token(turn.col, turn.player);
-        }
-
-        Tensor::cat(game_states.as_slice(), 0).unwrap()
-    }
-    pub fn get_actions(&self, player: &Player, device: &Device) -> Tensor {
-        let iter = self
-            .turns
+    pub fn get_actions(&self, player: &Player) -> Tensor<Bknd, 1, Int> {
+        let actions: Vec<_> = self
+            .frames
             .iter()
             .filter(|turn| turn.player == *player)
-            .map(|turn| turn.col as u32);
-        Tensor::from_iter(iter, device)
-            .unwrap()
-            .unsqueeze(1)
-            .unwrap()
+            .map(|turn| turn.col as i16)
+            .collect();
+        Tensor::from(actions.as_slice())
     }
-    pub fn number_of_turns(&self, player: &Player) -> usize {
-        self.turns
-            .iter()
-            .filter(|turn| turn.player == *player)
-            .count()
-    }
-    pub fn outcome(&self, player: &Player) -> GameOutcome {
-        if self.turns.len() == GameBoard::TOTAL_SPACES {
-            return GameOutcome::Tie;
+    pub fn outcome(&self) -> Outcome {
+        if self.frames.len() == GameBoard::TOTAL_SPACES {
+            return Outcome::Tie;
         }
-        let last_player = self.turns.last().unwrap().player;
-        if last_player == *player {
-            return GameOutcome::Win;
-        }
-        GameOutcome::Loss
-    }
-    pub fn save(&self, path: &Path) {
-        let file = File::create(path).unwrap();
-
-        let mut writer = csv::Writer::from_writer(file);
-
-        for turn in self.turns.iter() {
-            writer.serialize(turn);
-        }
-
-        writer.flush();
-    }
-
-    pub fn from_path(path: &Path) -> Self {
-        let file = File::open(path).unwrap();
-        let mut reader = csv::Reader::from_reader(file);
-        let turns: Vec<GameTurn> = reader.deserialize().map(|result| result.unwrap()).collect();
-        Self { turns }
-    }
-    pub fn get(&self, index: usize) -> &GameTurn {
-        &self.turns[index]
+        let last_player = self.frames.last().unwrap().player;
+        Outcome::Win(last_player)
     }
     pub fn len(&self) -> usize {
-        self.turns.len()
+        self.frames.len()
     }
 }
 
-#[derive(new, Serialize, Deserialize)]
-pub struct GameTurn {
+#[derive(new)]
+pub struct GameFrame {
     pub player: Player,
-    pub col: u8,
+    pub col: usize,
+}
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct TrainingFrame {
+    pub col: usize,
+    pub value: f32,
+    pub player: Player,
+    pub episode_id: u16,
+}
+impl TrainingFrame {
+    pub fn new(episode_id: u16, game_frame: GameFrame, value: f32) -> Self {
+        let GameFrame { player, col } = game_frame;
+        Self {
+            episode_id,
+            col,
+            value,
+            player,
+        }
+    }
 }

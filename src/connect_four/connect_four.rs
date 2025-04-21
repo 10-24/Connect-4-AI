@@ -1,10 +1,9 @@
-use candle_core::{Device, Tensor};
 use nalgebra::Point2;
 use std::{fmt, ops::Neg};
 
 use crate::player::Player;
 
-use super::{connect_four_enums::GameOutcome, game_board::{self, GameBoard}};
+use super::{connect_four_enums::Outcome, game_board::{self, GameBoard}};
 pub struct ConnectFour {
     pub board: GameBoard,
     pub current_player: Player,
@@ -27,20 +26,20 @@ impl ConnectFour {
         self.tokens_placed = 0;
     }
 
-    pub fn play_turn(&mut self, col: u8) -> Option<GameOutcome> {
+    pub fn play_turn(&mut self, col: usize) -> Option<Outcome> {
 
         let new_token_pos = self.board.add_token(col, self.current_player);
         if let Some(new_token_pos) = new_token_pos {
 
     
             if self.player_won(new_token_pos) {
-                return Some(GameOutcome::Win);
+                return Some(Outcome::Win);
             }
 
             self.tokens_placed += 1;
 
             if self.tokens_placed >= GameBoard::TOTAL_SPACES as u8 {
-                return Some(GameOutcome::Tie);
+                return Some(Outcome::Tie);
             }
 
             None

@@ -1,4 +1,4 @@
-use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, PartialEq, Debug,Serialize,Deserialize)]
@@ -18,10 +18,13 @@ impl Player {
 
 impl Player {
     pub fn switch(&mut self) {
-        *self = match self {
+        *self = self.other_player();
+    }
+    pub fn other_player(&self) -> Self {
+        match &self {
             Player::Blue => Player::Red,
             Player::Red => Player::Blue,
-        };
+        }
     }
     pub fn from_val(val: f32) -> Option<Player> {
         match val {
@@ -32,11 +35,3 @@ impl Player {
     }
 }
 
-impl fmt::Display for Player {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Player::Blue => write!(f, "Blue"),
-            Player::Red => write!(f, "Red"),
-        }
-    }
-}
