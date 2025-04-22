@@ -1,4 +1,5 @@
-use nalgebra::Point2;
+use nalgebra::Point2
+;
 use std::{fmt, ops::Neg};
 
 use crate::player::Player;

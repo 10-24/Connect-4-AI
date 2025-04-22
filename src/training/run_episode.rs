@@ -1,8 +1,9 @@
+
 use crate::{
     connect_four::{connect_four::ConnectFour, game_board::GameBoard},
     Bknd, ModelWithBackend, DEVICE,
 };
-use burn::tensor::Tensor;
+use burn::tensor::{activation::softmax, Tensor};
 use rand::{distributions::WeightedIndex, prelude::Distribution, rngs::ThreadRng, Rng};
 
 use super::{memory::episode_memory::EpisodeMemory, train::TrainingConfig};
@@ -31,16 +32,20 @@ pub fn run_episode(model: &ModelWithBackend, training_config: &TrainingConfig) -
 
 fn get_action(
     model: &ModelWithBackend,
-    state: Tensor<Bknd, 1>,
+    state: Tensor<Bknd, 2>,
     rng: &mut ThreadRng,
     training_config: &TrainingConfig,
 ) -> usize {
-    let q_vals_t = model.forward(state.unsqueeze()).squeeze(1); 
-    let col = sample_dist_random(q_vals_t,rng,training_config);
+    let q_vals = model.forward(state.clone()).squeeze(0);
+   
+    let col = sample_dist_random(q_vals,rng,training_config);
+    
     col
 }
 
-fn sample_dist_random(normalized_q_vals_t:Tensor<Bknd,1>,rng:&mut ThreadRng, training_config:&TrainingConfig) -> usize {
+fn sample_dist_random(q_vals_t:Tensor<Bknd,1>,rng:&mut ThreadRng, training_config:&TrainingConfig) -> usize {
+
+    let normalized_q_vals_t = softmax(q_vals_t, 0);
 
     let output_t_shape = normalized_q_vals_t.shape();
     let epsilon = training_config.epsilon;
@@ -54,6 +59,7 @@ fn sample_dist_random(normalized_q_vals_t:Tensor<Bknd,1>,rng:&mut ThreadRng, tra
     let normalized_q_vals_x_epsilon_t = normalized_q_vals_t.mul(epsilon_t);
 
     let dist_t = mean_x_epsilon_complement_t.add(normalized_q_vals_x_epsilon_t);
+   
     let dist: Vec<f32> = dist_t.to_data().to_vec().unwrap();
     let dist= WeightedIndex::new(dist.as_slice()).unwrap();
     dist.sample(rng)

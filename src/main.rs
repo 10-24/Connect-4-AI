@@ -2,7 +2,6 @@ use burn::{
     backend::{self, wgpu::WgpuDevice},
     tensor::Device,
 };
-use burn_cuda::CudaDevice;
 use connect_four::player;
 use std::path::Path;
 use training::{
@@ -17,11 +16,17 @@ mod toy_nn;
 mod training;
 mod ui;
 
-pub type StrippedBknd = burn_cuda::Cuda;
+pub type StrippedBknd = backend::Wgpu<f32,i32>;
 pub type Bknd = backend::Autodiff<StrippedBknd>;
-pub const DEVICE: CudaDevice = CudaDevice { index: 0 };
+pub const DEVICE:WgpuDevice = WgpuDevice::DefaultDevice;
 pub type ModelWithBackend = Model<Bknd>;
 pub type ModelWithStrippedBackend = Model<StrippedBknd>;
+
+// pub type StrippedBknd = burn_cuda::Cuda;
+// pub type Bknd = backend::Autodiff<StrippedBknd>;
+// pub const DEVICE: CudaDevice = CudaDevice { index: 0 };
+// pub type ModelWithBackend = Model<Bknd>;
+// pub type ModelWithStrippedBackend = Model<StrippedBknd>;
 
 fn main() {
     // let path = Path::new("episode_data\\Batch_04-21_20-34");

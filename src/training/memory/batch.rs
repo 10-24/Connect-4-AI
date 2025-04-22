@@ -14,7 +14,7 @@ use crate::{
 
 use super::episode_memory::TrainingFrame;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Batch {
     pub training_frames: Vec<TrainingFrame>,
 }
