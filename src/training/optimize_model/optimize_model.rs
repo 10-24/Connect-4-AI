@@ -1,30 +1,24 @@
 use burn::{
-    optim::{adaptor::OptimizerAdaptor, Adam, GradientsAccumulator, GradientsParams, Optimizer},
-    tensor::{self, Int, Tensor, TensorData}, train::TrainStep,
+   optim::{adaptor::OptimizerAdaptor, Adam,  GradientsParams, Optimizer},
 };
-use serde::de::value;
-
 use crate::{
-    connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
     training::{
-        run_episode, memory::batch::Batch,
-        optimize_model::calculate_target_q_vals::create_target_q_vals, train::TrainingConfig,
+        memory::batch::Batch,
+        train::TrainingConfig,
     },
-    Bknd, ModelWithBackend, DEVICE,
+    Bknd, ModelWithBackend,
 };
 
 pub fn optimize_model(
     batch: Batch,
     model: ModelWithBackend,
-    optimizer: &mut OptimizerAdaptor<Adam, Tensor<Bknd, 1>, Bknd>,
+    optimizer: &mut OptimizerAdaptor<Adam, ModelWithBackend, Bknd>,
     training_config: &TrainingConfig,
-) -> () {
-    // for episode in batch.episodes.iter() {
+) -> (ModelWithBackend,f32) {
 
-    model.step( batch);
-    let mut accumulator = GradientsAccumulator::new();
-    let model_gradients= model.backward()
-    let new_model = optimizer.step(training_config.learning_rate.into(), model, model_gradients);
-
-    
+    let regression_output = model.forward_regression(batch.get_game_states(),batch.create_target_q_val_builder());
+    let gradients = GradientsParams::from_grads(regression_output.loss.backward(),&model);
+   
+    let new_model = optimizer.step(training_config.learning_rate.into(), model, gradients);
+    (new_model,regression_output.loss.into_scalar())
 }

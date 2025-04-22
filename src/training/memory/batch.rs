@@ -1,31 +1,24 @@
-use burn::tensor::{Int, Tensor};
-use csv::{Error, Reader};
-use rayon::iter::{FromParallelIterator, ParallelIterator};
-use serde::Serialize;
 use std::{
-    array,
-    fs::File,
-    io::{Read, Write},
+    fs::{self, File},
     path::Path,
 };
 
+use burn::tensor::{Int, Tensor};
+use chrono::Local;
+use serde::Serialize;
+
 use crate::{
-    connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
-    training::{
-        memory::episode_memory::GameFrame, model::target_q_val_builder::TargetQValBuilder, train::{TrainingConfig, BATCH_SIZE, NUM_BATCHES}
-    },
+    connect_four::game_board::GameBoard, training::{model::target_q_val_builder::TargetQValBuilder, train::BATCH_SIZE},
     Bknd, DEVICE,
 };
-use chrono::Local;
 
-use super::episode_memory::{self, EpisodeMemory, TrainingFrame};
-use std::fs;
+use super::episode_memory::TrainingFrame;
 
+#[derive(Debug)]
 pub struct Batch {
-    training_frames: Vec<TrainingFrame>,
+    pub training_frames: Vec<TrainingFrame>,
 }
 impl Batch {
-
     pub fn new(training_frames: Vec<TrainingFrame>) -> Self {
         Self { training_frames }
     }
@@ -48,49 +41,51 @@ impl Batch {
             *game_state_val = board.as_tensor(&current_player);
             board.add_token(training_frame.col, current_player);
         }
-
         Tensor::stack(game_states, 0)
     }
-    
+
     pub fn create_target_q_val_builder(&self) -> TargetQValBuilder<Bknd> {
         TargetQValBuilder::new(self.get_selected_cols(), self.get_state_values())
     }
 
-    fn get_selected_cols(&self) -> Tensor<Bknd,1,Int> {
-        let selected_cols_vec:Vec<_> = self.training_frames.iter().map(|frame|frame.col).collect();
+    fn get_selected_cols(&self) -> Tensor<Bknd, 1, Int> {
+        let selected_cols_vec: Vec<_> =
+            self.training_frames.iter().map(|frame| frame.col).collect();
         Tensor::from_ints(selected_cols_vec.as_slice(), &DEVICE)
     }
 
     /** The actual value of each action. */
-    fn get_state_values(&self) -> Tensor<Bknd,1> {
-        let state_values:Vec<_> = self.training_frames.iter().map(|frame|frame.value).collect();
+    fn get_state_values(&self) -> Tensor<Bknd, 1> {
+        let state_values: Vec<_> = self
+            .training_frames
+            .iter()
+            .map(|frame| frame.value)
+            .collect();
         Tensor::from_floats(state_values.as_slice(), &DEVICE)
     }
 
-    // pub fn save(&self, folder: &Path) {
-    //     let timestamp = Local::now().format("%m-%d_%H-%M").to_string();
-    //     let batch_folder_name = format!("Batch_{timestamp}");
-    //     let batch_folder = folder.join(batch_folder_name);
-    //     let _ = fs::create_dir(batch_folder.clone());
+    pub fn save(&self, folder: &Path) {
+        let timestamp = Local::now().format("%m-%d_%H-%M").to_string();
+        let batch_file_name = format!("Batch_{timestamp}");
+        let batch_file_path = folder.join(batch_file_name);
 
-    //     for (i, memory) in self.training_frames.iter().enumerate() {
-    //         let file_name = format!("Episode_{i}.csv");
-    //         let path = batch_folder.join(file_name);
-    //         memory.save(&path);
-    //     }
-    // }
+        let mut csv_writer = csv::Writer::from_path(batch_file_path).unwrap();
 
-    // pub fn from_folder(batches_folder: &Path) -> Vec<Self> {
-    //     let mut batches = Vec::with_capacity(NUM_BATCHES as usize);
+        self.training_frames.iter().for_each(|training_frame| {
+            csv_writer
+                .serialize(training_frame)
+                .expect("Err serializing training_frame");
+        });
+        csv_writer.flush().expect("unable to save csv");
+    }
 
-    //     let dir = fs::read_dir(batches_folder).unwrap();
-    //     for entry in dir.into_iter() {
-    //         let entry = entry.unwrap();
-    //         let new_batch = Self::from(&entry.path());
+    pub fn from_file(path: &Path) -> Self {
 
-    //         batches.push(new_batch);
-    //     }
-
-    //     batches
-    // }
+        let mut csv_reader = csv::Reader::from_path(path).unwrap();
+        let training_frames:Vec<TrainingFrame> = csv_reader.deserialize().map(|frame|
+            frame.expect("Unable to deserialized training frame")
+        ).collect();
+        
+        Self { training_frames }
+    }
 }

@@ -33,7 +33,7 @@ impl ConnectFour {
 
     
             if self.player_won(new_token_pos) {
-                return Some(Outcome::Win);
+                return Some(Outcome::Win(self.current_player.clone()));
             }
 
             self.tokens_placed += 1;

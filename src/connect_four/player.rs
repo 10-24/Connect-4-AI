@@ -1,8 +1,9 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Debug,Serialize,Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug,Serialize,Deserialize,Default)]
 pub enum Player {
+    #[default]
     Blue,
     Red,
 }

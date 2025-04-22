@@ -8,10 +8,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
-    training::train::TrainingConfig,
+    training::train::{TrainingConfig, BATCH_SIZE},
     Bknd, DEVICE,
 };
 
+use super::batch::Batch;
+
+#[derive(Debug)]
 pub struct EpisodeMemory {
     pub frames: Vec<GameFrame>,
     pub id: u16,
@@ -24,9 +27,9 @@ impl EpisodeMemory {
         }
     }
 
-    pub fn record_turn(&mut self, player: Player, selected_col: usize) {
-        let new_turn = GameFrame::new(player, selected_col);
-        self.frames.push(new_turn)
+    pub fn record_frame(&mut self, player: Player, selected_col: usize) {
+        let new_frame = GameFrame::new(player, selected_col);
+        self.frames.push(new_frame);
     }
 
     pub fn get_actions(&self, player: &Player) -> Tensor<Bknd, 1, Int> {
@@ -34,7 +37,7 @@ impl EpisodeMemory {
             .frames
             .iter()
             .filter(|turn| turn.player == *player)
-            .map(|turn| turn.col as i16)
+            .map(|turn| turn.col as i32)
             .collect();
         Tensor::from(actions.as_slice())
     }
@@ -45,17 +48,36 @@ impl EpisodeMemory {
         let last_player = self.frames.last().unwrap().player;
         Outcome::Win(last_player)
     }
+    pub fn get(&self,i:usize) -> &GameFrame {
+        &self.frames[i]
+    }
     pub fn len(&self) -> usize {
         self.frames.len()
     }
+    pub fn from_batch(batch: Batch) -> Vec<Self> {
+        let mut episodes = Vec::with_capacity(BATCH_SIZE);
+
+        let mut current_episode = EpisodeMemory::new(batch.training_frames[0].episode_id);
+        for training_frame in batch.training_frames {
+            if training_frame.episode_id != current_episode.id {
+                episodes.push(current_episode);
+                current_episode = EpisodeMemory::new(training_frame.episode_id);
+            }
+            println!("{:?}",episodes.len());
+            current_episode.frames.push(training_frame.to_game_frame());
+        }
+        episodes.push(current_episode);
+        episodes
+    }
 }
 
-#[derive(new)]
+#[derive(new,Debug,Clone, Copy)]
 pub struct GameFrame {
     pub player: Player,
     pub col: usize,
 }
-#[derive(Clone, Copy, Serialize, Deserialize)]
+
+#[derive(Debug,Clone, Copy, Serialize, Deserialize,Default)]
 pub struct TrainingFrame {
     pub col: usize,
     pub value: f32,
@@ -71,5 +93,9 @@ impl TrainingFrame {
             value,
             player,
         }
+    }
+    fn to_game_frame(self) -> GameFrame {
+        let Self { player, col, .. } = self;
+        GameFrame::new(player, col)
     }
 }

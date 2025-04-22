@@ -14,7 +14,6 @@ impl<B: Backend> TargetQValBuilder<B> {
         let target_q_vals_shape = predicted_q_vals.shape();
 
         let selected_col_mask:Tensor<B,2,Bool> = create_mask(self.selected_cols.clone(), target_q_vals_shape.clone(),device);
-    
         let values_2d_full = self.state_values
             .unsqueeze_dim::<2>(1)
             .expand(target_q_vals_shape.clone());

@@ -7,7 +7,7 @@ use crate::{connect_four::{connect_four::ConnectFour, game_board::GameBoard}, pl
 use super::render_board::{render_board, BoardRenderOptions};
 
 
-pub fn create_window() {
+pub fn create_game_window() {
     let native_options = eframe::NativeOptions::default();
     let _ = eframe::run_native(
         "Connect 4",
@@ -22,12 +22,12 @@ struct MyEguiApp {
 impl MyEguiApp {
     fn new() -> MyEguiApp {
         MyEguiApp {
-            game: ConnectFour::new(4),
+            game: ConnectFour::new(3),
             victorious_player: None,
         }
     }
     fn reset(&mut self) {
-        self.game = ConnectFour::new(4);
+        self.game.reset();
         self.victorious_player = None;
     }
 }
@@ -63,7 +63,7 @@ impl eframe::App for MyEguiApp {
                 if outcome.is_some() {
                     self.victorious_player = Some(self.game.current_player);
                 }
-                
+                self.game.current_player.switch();
             }
         });
     }
@@ -113,7 +113,7 @@ fn get_selected_column(ui: &mut Ui, board_options: &BoardRenderOptions) -> usize
     min(col as usize, GameBoard::COLS)
 }
 fn create_reset_button(ui: &mut Ui, victorious_player: &Player) -> Response {
-    let text = format!("Player {} won! Reset?", victorious_player);
+    let text = format!("Player {:?} won! Reset?", victorious_player);
 
     let button = Button::new(text);
     ui.add(button).to_owned()
