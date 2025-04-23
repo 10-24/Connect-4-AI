@@ -14,8 +14,8 @@ impl ModelConfig {
 
     pub fn init<B: Backend>(&self, device: &B::Device) -> Model<B> {
 
-        let layer_0 = LinearConfig::new(42, 64).with_bias(true).init(device);
-        let layer_1 = LinearConfig::new(64, 30).with_bias(true).init(device);
+        let layer_0 = LinearConfig::new(42, 50).with_bias(true).init(device);
+        let layer_1 = LinearConfig::new(50, 30).with_bias(true).init(device);
         let layer_2 = LinearConfig::new(30, 7).with_bias(true).init(device);
         let activation = Relu::new();
 

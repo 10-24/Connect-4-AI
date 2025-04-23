@@ -12,7 +12,7 @@ pub fn convert_episode_to_training_frames(
     let outcome = episode.outcome();
     let mut blue_current_state_value = outcome.reward(&Player::Blue);
     let mut red_current_state_value = outcome.reward(&Player::Red);
-
+  
     let gamma = training_config.gamma;
     let mut training_frames = vec![TrainingFrame::default();episode.len()];
 
