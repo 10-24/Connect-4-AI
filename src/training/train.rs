@@ -11,7 +11,7 @@ use burn::{
     record::{DefaultFileRecorder, FullPrecisionSettings, NamedMpkFileRecorder, Recorder},
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use crate::{training::{memory::convert_episode_to_training_frames::convert_episode_to_training_frames, model::model_config::ModelConfig, optimize_model::optimize_model::optimize_model}, ModelWithBackend, DEVICE};
+use crate::{training::{memory::convert_episode_to_training_frames::convert_episode_to_training_frames, model::model_config::ModelConfig, optimize_model::optimize_model::optimize_model, print_training_summary::TrainingStepStats}, ModelWithBackend, DEVICE};
 
 use super::{memory::batch::{Batch, BatchFile}, run_episode::run_episode};
 
