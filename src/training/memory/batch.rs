@@ -64,9 +64,9 @@ impl Batch {
         Tensor::from_floats(state_values.as_slice(), &DEVICE)
     }
 
-    pub fn save(&self, folder: &Path) {
+    pub fn save(&self, folder: &Path,file_name:&str,) {
         let timestamp = Local::now().format("%m-%d_%H-%M").to_string();
-        let batch_file_name = format!("Batch_{timestamp}");
+        let batch_file_name = format!("Batch_{file_name}_{timestamp}");
         let batch_file_path = folder.join(batch_file_name);
 
         let mut csv_writer = csv::Writer::from_path(batch_file_path).unwrap();

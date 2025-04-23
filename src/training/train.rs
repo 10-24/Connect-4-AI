@@ -51,7 +51,8 @@ pub fn train() {
         let batch = Batch::new(training_frames);
    
 
-        // batch.save(Path::new("episode_data"));
+        batch.save(Path::new("episode_data"),i.to_string().as_str());
+        
         let (new_model,loss) = optimize_model(batch.clone(),model,&mut optimizer,&training_config,);
         model = new_model;
         if i % SAVE_INTERVAL == 0 {
