@@ -3,6 +3,9 @@ name = "rust"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev]
+incremental = true
+
 [dependencies]
 anyhow = "1.0.98"
 burn = { version = "0.16.0", features = ["wgpu","train"] }

@@ -2,6 +2,7 @@ use burn::{
     backend::{self, wgpu::WgpuDevice},
     tensor::Device,
 };
+use burn_cuda::CudaDevice;
 use connect_four::player;
 use std::path::Path;
 use training::{
@@ -12,7 +13,6 @@ use training::{
 use ui::{spectate_game::spectate_game, ui::create_game_window};
 mod connect_four;
 mod logger;
-mod toy_nn;
 mod training;
 mod ui;
 

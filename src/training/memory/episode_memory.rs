@@ -63,7 +63,6 @@ impl EpisodeMemory {
                 episodes.push(current_episode);
                 current_episode = EpisodeMemory::new(training_frame.episode_id);
             }
-            println!("{:?}",episodes.len());
             current_episode.frames.push(training_frame.to_game_frame());
         }
         episodes.push(current_episode);

@@ -1,26 +1,25 @@
 
 use crate::{
-    connect_four::{connect_four::ConnectFour, game_board::GameBoard},
+    connect_four::{connect_four::ConnectFour, game_board::GameBoard, player::{self, Player}},
     Bknd, ModelWithBackend, DEVICE,
 };
 use burn::tensor::{activation::softmax, Tensor};
 use rand::{distributions::WeightedIndex, prelude::Distribution, rngs::ThreadRng, Rng};
 
-use super::{memory::episode_memory::EpisodeMemory, train::TrainingConfig};
+use super::{memory::episode_memory::EpisodeMemory, model::model::ModelRecordItem, train::TrainingConfig};
 
 pub fn run_episode(model: &ModelWithBackend, training_config: &TrainingConfig) -> EpisodeMemory {
     let mut rng: ThreadRng = rand::thread_rng();
     let episode_id = rng.gen();
     let mut memory = EpisodeMemory::new(episode_id);
 
-    let mut game = ConnectFour::new(3);
+    let mut game = ConnectFour::new(2);
 
     loop {
         let game_state = game.board.as_tensor(&game.current_player).unsqueeze();
 
         let selected_col = get_action(model, game_state, &mut rng, training_config);
         memory.record_frame(game.current_player, selected_col);
-
         let turn_result_option = game.play_turn(selected_col);
         if turn_result_option.is_some() {
             return memory;
@@ -36,11 +35,11 @@ fn get_action(
     rng: &mut ThreadRng,
     training_config: &TrainingConfig,
 ) -> usize {
-    let q_vals = model.forward(state.clone()).squeeze(0);
-   
-    let col = sample_dist_random(q_vals,rng,training_config);
+    let q_vals:Tensor<_,1> = model.forward(state.clone()).squeeze(0);
+    // println!("{:?}",q_vals.to_data().to_vec::<f32>().unwrap());
+    // let col = sample_dist_random(q_vals,rng,training_config);
     
-    col
+    q_vals.argmax(0).into_scalar() as usize
 }
 
 fn sample_dist_random(q_vals_t:Tensor<Bknd,1>,rng:&mut ThreadRng, training_config:&TrainingConfig) -> usize {

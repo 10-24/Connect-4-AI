@@ -13,12 +13,12 @@ impl Outcome {
     pub fn reward(&self,player:&Player) -> f32 {
         if let Self::Win(victorious_player) = *self {
             if *player == victorious_player {
-                return 1.0;
+                return 0.5;
             }
-            return -0.8;
+            return -0.4;
         }
 
-        -0.1
+        -0.08
     }
 }
 
