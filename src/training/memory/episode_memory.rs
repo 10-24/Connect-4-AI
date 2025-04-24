@@ -17,12 +17,13 @@ use super::batch::Batch;
 #[derive(Debug)]
 pub struct EpisodeMemory {
     pub frames: Vec<GameFrame>,
-    pub id: u16,
+    pub episode_id: u16,
+    pub batch_id: u16,
 }
 impl EpisodeMemory {
-    pub fn new(id: u16) -> Self {
+    pub fn new(batch_id: u16,batch_id:u16) -> Self {
         Self {
-            id,
+            episode_id: id,
             frames: Vec::with_capacity(42),
         }
     }
@@ -48,7 +49,7 @@ impl EpisodeMemory {
         let last_player = self.frames.last().unwrap().player;
         Outcome::Win(last_player)
     }
-    pub fn get(&self,i:usize) -> &GameFrame {
+    pub fn get(&self, i: usize) -> &GameFrame {
         &self.frames[i]
     }
     pub fn len(&self) -> usize {
@@ -59,7 +60,7 @@ impl EpisodeMemory {
 
         let mut current_episode = EpisodeMemory::new(batch.training_frames[0].episode_id);
         for training_frame in batch.training_frames {
-            if training_frame.episode_id != current_episode.id {
+            if training_frame.episode_id != current_episode.episode_id {
                 episodes.push(current_episode);
                 current_episode = EpisodeMemory::new(training_frame.episode_id);
             }
@@ -70,23 +71,32 @@ impl EpisodeMemory {
     }
 }
 
-#[derive(new,Debug,Clone, Copy)]
+#[derive(new, Debug, Clone, Copy)]
 pub struct GameFrame {
     pub player: Player,
     pub col: usize,
+    pub batch_id: u16,
+    pub episode_id: u16,
 }
 
-#[derive(Debug,Clone, Copy, Serialize, Deserialize,Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub struct TrainingFrame {
     pub col: usize,
     pub value: f32,
     pub player: Player,
     pub episode_id: u16,
+    pub batch_id: u16,
 }
 impl TrainingFrame {
-    pub fn new(episode_id: u16, game_frame: GameFrame, value: f32) -> Self {
-        let GameFrame { player, col } = game_frame;
+    pub fn new(game_frame: GameFrame, value: f32) -> Self {
+        let GameFrame {
+            player,
+            col,
+            episode_id,
+            batch_id,
+        } = game_frame;
         Self {
+            batch_id,
             episode_id,
             col,
             value,
@@ -94,7 +104,13 @@ impl TrainingFrame {
         }
     }
     fn to_game_frame(self) -> GameFrame {
-        let Self { player, col, .. } = self;
-        GameFrame::new(player, col)
+        let Self {
+            player,
+            col,
+            batch_id,
+            episode_id,
+            ..
+        } = self;
+        GameFrame::new(player, col, batch_id, episode_id)
     }
 }
