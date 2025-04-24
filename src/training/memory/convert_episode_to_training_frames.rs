@@ -8,16 +8,19 @@ pub fn convert_episode_to_training_frames(
     episode: EpisodeMemory,
     training_config: &TrainingConfig,
 ) -> Vec<TrainingFrame> {
-
     let outcome = episode.outcome();
     let mut blue_current_state_value = outcome.reward(&Player::Blue);
     let mut red_current_state_value = outcome.reward(&Player::Red);
-  
+
     let gamma = training_config.gamma;
-    let mut training_frames = vec![TrainingFrame::default();episode.len()];
+    let mut training_frames = vec![TrainingFrame::default(); episode.len()];
 
-    for (game_frame,training_frame_val) in episode.frames.into_iter().zip(training_frames.iter_mut()).rev() {
-
+    for (game_frame, training_frame_val) in episode
+        .frames
+        .into_iter()
+        .zip(training_frames.iter_mut())
+        .rev()
+    {
         let player = game_frame.player;
 
         let value = if player == Player::Blue {
@@ -29,7 +32,7 @@ pub fn convert_episode_to_training_frames(
             red_current_state_value *= gamma;
             v
         };
-        *training_frame_val = TrainingFrame::new(episode.id,game_frame,value);
+        *training_frame_val = TrainingFrame::new(episode.episode_id, game_frame, value);
     }
     training_frames
 }
