@@ -1,5 +1,7 @@
 use std::{
-    fs::{self, File}, io::Write, path::Path
+    fs::{self, File},
+    io::Write,
+    path::Path,
 };
 
 use burn::tensor::{Int, Tensor};
@@ -11,6 +13,7 @@ use crate::{
     connect_four::game_board::GameBoard,
     training::{
         model::target_q_val_builder::TargetQValBuilder,
+        run_episode::Identifier,
         train::{BATCH_SIZE, NUM_BATCHES},
     },
     Bknd, DEVICE,
@@ -65,10 +68,11 @@ impl Batch {
     }
 
     pub fn to_csv(&self) -> Vec<u8> {
-        let mut csv_writer = csv::Writer::from_writer(Vec::with_capacity(self.training_frames.len()));
-        self.training_frames.iter().for_each(|frame|
-            csv_writer.serialize(frame).expect("Cannot serialize turn")
-        );
+        let mut csv_writer =
+            csv::Writer::from_writer(Vec::with_capacity(self.training_frames.len()));
+        self.training_frames
+            .iter()
+            .for_each(|frame| csv_writer.serialize(frame).expect("Cannot serialize turn"));
         csv_writer.into_inner().unwrap()
     }
 
@@ -86,33 +90,39 @@ impl Batch {
 #[derive(Debug)]
 pub struct BatchFile {
     batches: Vec<Batch>,
-    file_path_string: String,
 }
 impl BatchFile {
-    pub fn new(folder: &str) -> Self {
-        let file_name = Self::create_file_name();
-        let file_path_string = format!("{folder}/{file_name}");
-
-        let batches = Vec::with_capacity(NUM_BATCHES as usize);
-        
+    pub fn new() -> Self {
         Self {
-            batches,
-            file_path_string,
+            batches: Vec::with_capacity(NUM_BATCHES as usize),
         }
     }
+
     pub fn add(&mut self, batch: Batch) {
         self.batches.push(batch);
     }
-    pub fn save(self) {
-        
-        let file = File::create_new(self.file_path_string).expect("Couldn't create a new file");
-        let csv:Vec<u8> = self.batches.iter().map(|batch| 
-            batch.to_csv()
-        ).reduce(|&mut a, &mut b|{}).collect();
-        file.write(buf)
+
+    pub fn save(self, folder: &str) -> anyhow::Result<()> {
+        let csv = self
+            .batches
+            .iter()
+            .map(|batch| batch.to_csv())
+            .reduce(|mut a, b| {
+                a.extend(b);
+                a
+            })
+            .ok_or_else(|| anyhow::anyhow!("csv string was none"))?;
+
+        let file_path = Self::create_file_path(folder);
+        let mut file = File::create_new(file_path)?;
+        file.write(csv.as_slice())?;
+        file.flush()?;
+        Ok(())
     }
-    fn create_file_name() -> String {
+
+    fn create_file_path(folder: &str) -> String {
         let timestamp = Local::now().format("%m-%d_%H-%M").to_string();
-        format!("Batch_{timestamp}")
+        let file_name = format!("Batch_{timestamp}");
+        format!("{folder}/{file_name}")
     }
 }

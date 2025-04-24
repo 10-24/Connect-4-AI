@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
-    training::train::{TrainingConfig, BATCH_SIZE},
+    training::{run_episode::Identifier, train::{TrainingConfig, BATCH_SIZE}},
     Bknd, DEVICE,
 };
 
@@ -17,13 +17,13 @@ use super::batch::Batch;
 #[derive(Debug)]
 pub struct EpisodeMemory {
     pub frames: Vec<GameFrame>,
-    pub episode_id: u16,
-    pub batch_id: u16,
+    pub id:u16,
 }
 impl EpisodeMemory {
-    pub fn new(batch_id: u16,batch_id:u16) -> Self {
+
+    pub fn new(id:u16) -> Self {
         Self {
-            episode_id: id,
+            id,
             frames: Vec::with_capacity(42),
         }
     }
@@ -60,7 +60,7 @@ impl EpisodeMemory {
 
         let mut current_episode = EpisodeMemory::new(batch.training_frames[0].episode_id);
         for training_frame in batch.training_frames {
-            if training_frame.episode_id != current_episode.episode_id {
+            if training_frame.episode_id != current_episode.id {
                 episodes.push(current_episode);
                 current_episode = EpisodeMemory::new(training_frame.episode_id);
             }
@@ -75,25 +75,22 @@ impl EpisodeMemory {
 pub struct GameFrame {
     pub player: Player,
     pub col: usize,
-    pub batch_id: u16,
-    pub episode_id: u16,
+
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy,Default,Serialize,Deserialize)]
 pub struct TrainingFrame {
     pub col: usize,
     pub value: f32,
     pub player: Player,
-    pub episode_id: u16,
-    pub batch_id: u16,
+    pub episode_id:u16,
+    pub batch_id:u16,
 }
 impl TrainingFrame {
-    pub fn new(game_frame: GameFrame, value: f32) -> Self {
+    pub fn new(batch_id:u16,episode_id:u16,game_frame: GameFrame, value: f32) -> Self {
         let GameFrame {
             player,
             col,
-            episode_id,
-            batch_id,
         } = game_frame;
         Self {
             batch_id,
@@ -107,10 +104,8 @@ impl TrainingFrame {
         let Self {
             player,
             col,
-            batch_id,
-            episode_id,
             ..
         } = self;
-        GameFrame::new(player, col, batch_id, episode_id)
+        GameFrame::new(player, col)
     }
 }
