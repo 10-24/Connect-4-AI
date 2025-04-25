@@ -11,7 +11,7 @@ impl Batch {
         episodes: [EpisodeMemory;BATCH_SIZE],
         training_config: &TrainingConfig,
     )-> Self{
-        let training_frames = episodes.par_iter()
+        let training_frames = episodes.par_iter().map(|episode|Self::episode_to_training_frames(batch_id))
         Self {
             training_frames,
         }
