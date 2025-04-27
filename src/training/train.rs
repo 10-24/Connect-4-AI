@@ -52,10 +52,10 @@ pub fn train() {
         batch_file.add(batch);
     }
 
-    batch_file.save(BATCH_FOLDER).expect("Couldn't save batch");
-    model
-        .save_file(MODEL_WEIGHTS_PATH, &model_parameters_recorder)
-        .expect("Unable to save model");
+    // batch_file.save(BATCH_FOLDER).expect("Couldn't save batch");
+    // model
+    //     .save_file(MODEL_WEIGHTS_PATH, &model_parameters_recorder)
+    //     .expect("Unable to save model");
 }
 
 #[derive(Clone, Copy)]
