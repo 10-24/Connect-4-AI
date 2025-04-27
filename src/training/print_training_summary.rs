@@ -1,12 +1,12 @@
 use burn::tensor::ElementComparison;
 use derive_new::new;
 
-use super::train::{NUM_BATCHES,BATCH_SIZE};
+use super::train::{NUM_BATCHES,EPISODES_PER_BATCH};
 
 pub fn print_training_summary(stats:[TrainingStepStats;NUM_BATCHES as usize]){
     
     println!("Training Complete!");
-    println!("Batches: {NUM_BATCHES}, Episodes per Batch {BATCH_SIZE}");
+    println!("Batches: {NUM_BATCHES}, Episodes per Batch {EPISODES_PER_BATCH}");
 
     let (min_loss_index,min_loss_training_step) = stats.iter().enumerate().min_by(|a,b| a.1.loss.cmp(&b.1.loss)).unwrap();
     let min_loss = min_loss_training_step.loss;

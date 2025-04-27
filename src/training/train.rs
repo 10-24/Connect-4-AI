@@ -1,5 +1,5 @@
 use crate::{
-    training::{model::model_config::ModelConfig, optimize_model::optimize_model::optimize_model},
+    training::{memory::episode_memory::EpisodeMemory, model::model_config::ModelConfig, optimize_model::optimize_model::optimize_model},
     ModelWithBackend, DEVICE,
 };
 use burn::{
@@ -7,7 +7,7 @@ use burn::{
     optim::AdamConfig,
     record::{DefaultFileRecorder, FullPrecisionSettings, NamedMpkFileRecorder, Recorder},
 };
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use std::{path::Path, sync::Arc};
 
 use super::{
@@ -16,7 +16,7 @@ use super::{
 };
 
 pub const NUM_BATCHES: u16 = 1000;
-pub const BATCH_SIZE: usize = 6;
+pub const EPISODES_PER_BATCH: usize = 6;
 
 const EPSILON: f32 = 0.65;
 const GAMMA: f32 = 0.97;
@@ -35,25 +35,20 @@ pub fn train() {
     let mut optimizer = AdamConfig::new().init();
     let mut batch_file = BatchFile::new();
 
-    for i in 1..=NUM_BATCHES {
-        let episodes = (0..BATCH_SIZE).into_par_iter().map(|episode_id| {
+    for batch_id in 1..=NUM_BATCHES {
+       
+        let episodes = (0..EPISODES_PER_BATCH).into_par_iter().map(|episode_id| {
             let model = ModelConfig::new().init(&DEVICE);
             run_episode(episode_id as u16, &model, &training_config)
-        });
+        }).collect();
 
-        let training_frames = episodes
-            .map(|episode| convert_episode_to_training_frames(episode, &training_config))
-            .reduce(Vec::new, |mut reducer, mut val| {
-                reducer.append(&mut val);
-                reducer
-            });
-        let batch = Batch::new(training_frames);
+        let batch = Batch::from_episodes(batch_id, episodes, &training_config);
 
         let (new_model, loss) =
             optimize_model(batch.clone(), model, &mut optimizer, &training_config);
 
         model = new_model;
-        println!("batch {i}/{NUM_BATCHES}, loss {loss}");
+        println!("batch {batch_id}/{NUM_BATCHES}, loss {loss}");
         batch_file.add(batch);
     }
 

@@ -1,33 +1,43 @@
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{
+    IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
+};
 
-use crate::{connect_four::player::Player, training::train::{TrainingConfig, BATCH_SIZE}};
+use crate::{
+    connect_four::player::Player,
+    training::train::{TrainingConfig, EPISODES_PER_BATCH},
+};
 
-use super::{batch::Batch, episode_memory::{EpisodeMemory, TrainingFrame}};
+use super::{
+    batch::Batch,
+    episode_memory::{EpisodeMemory, TrainingFrame},
+};
 
 impl Batch {
-   
     pub fn from_episodes(
-        batch_id:u16,
-        episodes: [EpisodeMemory;BATCH_SIZE],
+        batch_id: u16,
+        episodes: Vec<EpisodeMemory>,
         training_config: &TrainingConfig,
-    )-> Self{
-        let training_frames = episodes.par_iter().map(|episode|Self::episode_to_training_frames(batch_id))
-        Self {
-            training_frames,
-        }
+    ) -> Self {
+        let training_frames = episodes
+            .into_par_iter()
+            .map(|episode| Self::episode_to_training_frames(batch_id, episode, training_config))
+            .flatten()
+            .collect();
+        Self { training_frames }
     }
+
     fn episode_to_training_frames(
-        batch_id:u16,
+        batch_id: u16,
         episode: EpisodeMemory,
         training_config: &TrainingConfig,
-    )-> Vec<TrainingFrame> {
+    ) -> Vec<TrainingFrame> {
         let outcome = episode.outcome();
         let mut blue_current_state_value = outcome.reward(&Player::Blue);
         let mut red_current_state_value = outcome.reward(&Player::Red);
-    
+
         let gamma = training_config.gamma;
         let mut training_frames = vec![TrainingFrame::default(); episode.len()];
-    
+
         for (game_frame, training_frame_val) in episode
             .frames
             .into_iter()
@@ -35,7 +45,7 @@ impl Batch {
             .rev()
         {
             let player = game_frame.player;
-    
+
             let value = if player == Player::Blue {
                 let v = blue_current_state_value;
                 blue_current_state_value *= gamma;
@@ -45,9 +55,8 @@ impl Batch {
                 red_current_state_value *= gamma;
                 v
             };
-            *training_frame_val = TrainingFrame::new(batch_id,episode.id,game_frame, value);
+            *training_frame_val = TrainingFrame::new(batch_id, episode.id, game_frame, value);
         }
         training_frames
     }
-    
 }

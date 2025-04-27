@@ -8,20 +8,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     connect_four::{connect_four_enums::Outcome, game_board::GameBoard, player::Player},
-    training::{run_episode::Identifier, train::{TrainingConfig, BATCH_SIZE}},
-    Bknd, DEVICE,
+    training::{
+        run_episode::Identifier,
+        train::{TrainingConfig, EPISODES_PER_BATCH},
+    },
+    Bknd,
 };
 
 use super::batch::Batch;
 
-#[derive(Debug)]
+#[derive(Debug, Default,Clone)]
 pub struct EpisodeMemory {
     pub frames: Vec<GameFrame>,
-    pub id:u16,
+    pub id: u16,
 }
 impl EpisodeMemory {
-
-    pub fn new(id:u16) -> Self {
+    pub fn new(id: u16) -> Self {
         Self {
             id,
             frames: Vec::with_capacity(42),
@@ -56,7 +58,7 @@ impl EpisodeMemory {
         self.frames.len()
     }
     pub fn from_batch(batch: Batch) -> Vec<Self> {
-        let mut episodes = Vec::with_capacity(BATCH_SIZE);
+        let mut episodes = Vec::with_capacity(EPISODES_PER_BATCH);
 
         let mut current_episode = EpisodeMemory::new(batch.training_frames[0].episode_id);
         for training_frame in batch.training_frames {
@@ -75,23 +77,19 @@ impl EpisodeMemory {
 pub struct GameFrame {
     pub player: Player,
     pub col: usize,
-
 }
 
-#[derive(Debug, Clone, Copy,Default,Serialize,Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct TrainingFrame {
     pub col: usize,
     pub value: f32,
     pub player: Player,
-    pub episode_id:u16,
-    pub batch_id:u16,
+    pub episode_id: u16,
+    pub batch_id: u16,
 }
 impl TrainingFrame {
-    pub fn new(batch_id:u16,episode_id:u16,game_frame: GameFrame, value: f32) -> Self {
-        let GameFrame {
-            player,
-            col,
-        } = game_frame;
+    pub fn new(batch_id: u16, episode_id: u16, game_frame: GameFrame, value: f32) -> Self {
+        let GameFrame { player, col } = game_frame;
         Self {
             batch_id,
             episode_id,
@@ -101,11 +99,7 @@ impl TrainingFrame {
         }
     }
     fn to_game_frame(self) -> GameFrame {
-        let Self {
-            player,
-            col,
-            ..
-        } = self;
+        let Self { player, col, .. } = self;
         GameFrame::new(player, col)
     }
 }

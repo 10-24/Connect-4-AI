@@ -14,7 +14,7 @@ use crate::{
     training::{
         model::target_q_val_builder::TargetQValBuilder,
         run_episode::Identifier,
-        train::{BATCH_SIZE, NUM_BATCHES},
+        train::{EPISODES_PER_BATCH, NUM_BATCHES},
     },
     Bknd, DEVICE,
 };
@@ -115,7 +115,7 @@ impl BatchFile {
 
         let file_path = Self::create_file_path(folder);
         let mut file = File::create_new(file_path)?;
-        file.write(csv.as_slice())?;
+        file.write_all(csv.as_slice())?;
         file.flush()?;
         Ok(())
     }
