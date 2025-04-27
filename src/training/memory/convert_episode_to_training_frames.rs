@@ -31,6 +31,7 @@ impl Batch {
         episode: EpisodeMemory,
         training_config: &TrainingConfig,
     ) -> Vec<TrainingFrame> {
+        
         let outcome = episode.outcome();
         let mut blue_current_state_value = outcome.reward(&Player::Blue);
         let mut red_current_state_value = outcome.reward(&Player::Red);
