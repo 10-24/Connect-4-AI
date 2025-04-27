@@ -29,14 +29,13 @@ impl GameBoard {
         let new_token_pos = Point2::new(col, row);
 
         let index = Self::point_to_index(&new_token_pos);
-        self.board[index] = player.to_val();
+        self.board[index] = player.to_f32();
 
         self.column_height[col] += 1;
         Some(new_token_pos)
     }
 
     pub fn remove_token(&mut self, col: usize) {
-  
         let row = self.column_height[col] - 1;
 
         let token_pos = Point2::new(col, row);
@@ -65,7 +64,7 @@ impl GameBoard {
         self.column_height.fill(0);
     }
 
-    pub fn as_tensor(&self, player: &Player) -> Tensor<Bknd,1> {
+    pub fn as_tensor(&self, player: &Player) -> Tensor<Bknd, 1> {
         if *player == Player::Blue {
             return Self::board_to_tensor(self.board);
         }

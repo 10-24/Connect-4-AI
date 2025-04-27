@@ -1,7 +1,6 @@
-
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Debug,Serialize,Deserialize,Default)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize, Default)]
 pub enum Player {
     #[default]
     Blue,
@@ -9,7 +8,7 @@ pub enum Player {
 }
 
 impl Player {
-    pub fn to_val(&self) -> f32 {
+    pub fn to_f32(&self) -> f32 {
         match self {
             Player::Blue => 1.0,
             Player::Red => -1.0,
@@ -35,4 +34,3 @@ impl Player {
         }
     }
 }
-
