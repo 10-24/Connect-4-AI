@@ -16,7 +16,7 @@ use super::{
 };
 
 pub const NUM_BATCHES: u16 = 1000;
-pub const EPISODES_PER_BATCH: usize = 6;
+pub const EPISODES_PER_BATCH: usize = 20;
 
 const EPSILON: f32 = 0.65;
 const GAMMA: f32 = 0.97;
